@@ -135,6 +135,8 @@ class ProjectAnalyzer:
 
 
 def render_project_markdown(result: ProjectResult) -> str:
+    from .ast import ProjectASTBuilder, render_ast_markdown
+
     counts: dict[str, int] = {key: 0 for key in BLOCK_PREFIX}
     for block in result.blocks:
         counts[block.block_type] = counts.get(block.block_type, 0) + 1
@@ -169,9 +171,10 @@ def render_project_markdown(result: ProjectResult) -> str:
             f"| {len(analysis.variables)} | {len(analysis.instances)} | {len(analysis.calls)} |"
         )
 
+    ast = ProjectASTBuilder().build(result)
+    lines.extend(["", render_ast_markdown(ast), ""])
     lines.extend(
         [
-            "",
             "## 说明",
             "",
             "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。",
