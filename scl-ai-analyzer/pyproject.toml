@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scl-ai-analyzer"
-version = "0.3.0"
-description = "Parse Siemens SCL structure, variables, control flow, and direct calls into engineering reports."
+version = "0.4.0"
+description = "Parse Siemens SCL blocks, variables, FB instances, control flow, and calls into engineering reports."
 requires-python = ">=3.10"
 authors = [{ name = "Shanghai Xilin Automation Technology Co., Ltd." }]
 
