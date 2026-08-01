@@ -1,0 +1,31 @@
+FUNCTION_BLOCK "FB_MotorControl"
+VAR_INPUT
+    StartCmd : Bool; // 启动命令
+    StopCmd : Bool; // 停止命令
+    ResetCmd : Bool; // 故障复位
+END_VAR
+VAR_OUTPUT
+    RunCmd : Bool; // 电机运行输出
+    Alarm : Bool; // 电机报警
+END_VAR
+VAR
+    Running : Bool := FALSE; // 内部运行状态
+END_VAR
+VAR_TEMP
+    StartAllowed : Bool; // 本周期启动许可
+END_VAR
+
+StartAllowed := StartCmd AND NOT StopCmd AND NOT Alarm;
+
+IF ResetCmd THEN
+    Alarm := FALSE;
+END_IF;
+
+IF StartAllowed THEN
+    Running := TRUE;
+ELSIF StopCmd THEN
+    Running := FALSE;
+END_IF;
+
+RunCmd := Running AND NOT Alarm;
+END_FUNCTION_BLOCK
