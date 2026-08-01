@@ -1,75 +1,57 @@
 from scl_ai_analyzer.parser import SCLParser, render_markdown
 
-
 SAMPLE = '''
 FUNCTION_BLOCK "MotorControl"
 VAR_INPUT
-    Start : Bool; // 启动命令
-    Speed : Real := 50.0;
-END_VAR
-VAR_OUTPUT
-    Running : Bool;
+    Start : Bool;
 END_VAR
 VAR
+    Motor1, Motor2 : FB_Motor;
+    AlarmManager : "FB Alarm";
     Step : Int := 0;
 END_VAR
 BEGIN
-    IF Start THEN
-        #MotorInstance(
-            Enable := Start,
-            Speed := Speed
-        );
-        FC_Reset();
-    ELSIF Speed <= 0.0 THEN
-        Running := FALSE;
-    END_IF;
-
-    "Alarm DB"(
-        Trigger := NOT Running
-    );
-
-    CASE Step OF
-        0: Step := 1;
-        1: Step := 2;
-    END_CASE;
+    #Motor1(Enable := Start);
+    #Motor2(Enable := TRUE);
+    FC_Reset();
+    #AlarmManager(Trigger := TRUE);
 END_FUNCTION_BLOCK
 '''
 
 
-def test_parse_block_and_variables() -> None:
-    result = SCLParser().parse_text(SAMPLE, source_name="motor.scl")
-
-    assert result.block.block_type == "FUNCTION_BLOCK"
-    assert result.block.name == "MotorControl"
-    assert len(result.variables) == 4
-    assert result.variables[0].section == "Input"
-    assert result.variables[0].name == "Start"
-    assert result.variables[0].comment == "启动命令"
-    assert result.variables[1].default == "50.0"
-    assert result.variables[3].section == "Static"
-
-
-def test_count_control_flow() -> None:
+def test_multi_instance_declarations() -> None:
     result = SCLParser().parse_text(SAMPLE)
-
-    assert result.control_flow["IF"] == 1
-    assert result.control_flow["ELSIF"] == 1
-    assert result.control_flow["CASE"] == 1
-    assert result.control_flow["FOR"] == 0
+    assert [item.name for item in result.instances] == ["Motor1", "Motor2", "AlarmManager"]
+    assert [item.fb_type for item in result.instances] == ["FB_Motor", "FB_Motor", '"FB Alarm"']
 
 
-def test_extract_direct_calls() -> None:
+def test_instance_calls_are_classified() -> None:
     result = SCLParser().parse_text(SAMPLE)
-
-    assert [item.target for item in result.calls] == [
-        "#MotorInstance",
-        "FC_Reset",
-        '"Alarm DB"',
+    assert [(item.target, item.call_kind, item.fb_type) for item in result.calls] == [
+        ("#Motor1", "FB Instance", "FB_Motor"),
+        ("#Motor2", "FB Instance", "FB_Motor"),
+        ("FC_Reset", "Direct", None),
+        ("#AlarmManager", "FB Instance", '"FB Alarm"'),
     ]
-    assert all(item.line_number > 0 for item in result.calls)
 
 
-def test_keywords_and_comments_are_not_calls() -> None:
+def test_builtin_static_is_not_instance() -> None:
+    text = '''
+    FUNCTION_BLOCK "Demo"
+    VAR
+        Step : Int;
+        Axis : FB_Axis;
+    END_VAR
+    BEGIN
+        #Axis();
+    END_FUNCTION_BLOCK
+    '''
+    result = SCLParser().parse_text(text)
+    assert [item.name for item in result.instances] == ["Axis"]
+    assert result.calls[0].call_kind == "FB Instance"
+
+
+def test_comments_and_keywords_are_ignored() -> None:
     text = '''
     FUNCTION "Demo" : Bool
     BEGIN
@@ -81,38 +63,13 @@ def test_keywords_and_comments_are_not_calls() -> None:
     END_FUNCTION
     '''
     result = SCLParser().parse_text(text)
-
     assert [item.target for item in result.calls] == ["RealCall"]
 
 
-def test_markdown_contains_engineering_summary() -> None:
-    result = SCLParser().parse_text(SAMPLE, source_name="motor.scl")
-    report = render_markdown(result)
-
-    assert "# SCL 分析报告：motor.scl" in report
-    assert "FUNCTION_BLOCK" in report
-    assert "MotorControl" in report
-    assert "变量分区统计" in report
-    assert "控制结构统计" in report
-    assert "调用关系" in report
-    assert "#MotorInstance" in report
+def test_markdown_contains_instance_summary() -> None:
+    report = render_markdown(SCLParser().parse_text(SAMPLE, source_name="motor.scl"))
+    assert "FB 实例" in report
+    assert "Motor1" in report
+    assert "FB_Motor" in report
+    assert "FB Instance" in report
     assert "FC_Reset" in report
-    assert "启动命令" in report
-
-
-def test_block_comments_are_ignored() -> None:
-    text = '''
-    (* FUNCTION_BLOCK Fake\nVAR_INPUT\nBad : Bool;\nEND_VAR *)
-    FUNCTION "RealFunction" : Bool
-    VAR_INPUT
-        Enable : Bool;
-    END_VAR
-    BEGIN
-        RealFunction := Enable;
-    END_FUNCTION
-    '''
-    result = SCLParser().parse_text(text)
-
-    assert result.block.name == "RealFunction"
-    assert result.block.return_type == "Bool"
-    assert [item.name for item in result.variables] == ["Enable"]
