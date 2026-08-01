@@ -15,10 +15,18 @@ VAR
 END_VAR
 BEGIN
     IF Start THEN
-        Running := TRUE;
+        #MotorInstance(
+            Enable := Start,
+            Speed := Speed
+        );
+        FC_Reset();
     ELSIF Speed <= 0.0 THEN
         Running := FALSE;
     END_IF;
+
+    "Alarm DB"(
+        Trigger := NOT Running
+    );
 
     CASE Step OF
         0: Step := 1;
@@ -50,6 +58,33 @@ def test_count_control_flow() -> None:
     assert result.control_flow["FOR"] == 0
 
 
+def test_extract_direct_calls() -> None:
+    result = SCLParser().parse_text(SAMPLE)
+
+    assert [item.target for item in result.calls] == [
+        "#MotorInstance",
+        "FC_Reset",
+        '"Alarm DB"',
+    ]
+    assert all(item.line_number > 0 for item in result.calls)
+
+
+def test_keywords_and_comments_are_not_calls() -> None:
+    text = '''
+    FUNCTION "Demo" : Bool
+    BEGIN
+        // FakeCall();
+        IF TRUE THEN
+            RealCall();
+        END_IF;
+        (* HiddenCall(); *)
+    END_FUNCTION
+    '''
+    result = SCLParser().parse_text(text)
+
+    assert [item.target for item in result.calls] == ["RealCall"]
+
+
 def test_markdown_contains_engineering_summary() -> None:
     result = SCLParser().parse_text(SAMPLE, source_name="motor.scl")
     report = render_markdown(result)
@@ -59,6 +94,9 @@ def test_markdown_contains_engineering_summary() -> None:
     assert "MotorControl" in report
     assert "变量分区统计" in report
     assert "控制结构统计" in report
+    assert "调用关系" in report
+    assert "#MotorInstance" in report
+    assert "FC_Reset" in report
     assert "启动命令" in report
 
 
