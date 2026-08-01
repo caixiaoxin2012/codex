@@ -25,14 +25,18 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     try:
-        variables = SCLParser().parse_file(args.input)
-        report = render_markdown(args.input.name, variables)
+        result = SCLParser().parse_file(args.input)
+        report = render_markdown(result)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report, encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise SystemExit(f"Analysis failed: {exc}") from exc
 
-    print(f"Report generated: {args.output} ({len(variables)} variables)")
+    block_label = result.block.name or "unknown block"
+    print(
+        f"Report generated: {args.output} "
+        f"({block_label}, {len(result.variables)} variables)"
+    )
     return 0
 
 
