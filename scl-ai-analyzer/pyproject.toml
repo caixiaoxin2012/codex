@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scl-ai-analyzer"
-version = "0.1.0"
-description = "Parse Siemens SCL variable declarations and generate engineering reports."
+version = "0.2.0"
+description = "Parse Siemens SCL structure and generate engineering reports."
 requires-python = ">=3.10"
 authors = [{ name = "Shanghai Xilin Automation Technology Co., Ltd." }]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
 
 [project.scripts]
 scl-ai-analyzer = "scl_ai_analyzer.cli:main"
@@ -17,3 +20,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
