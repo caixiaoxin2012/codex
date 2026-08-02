@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .classifier import classify_address
+from .classifier import SUPPORTED_VENDORS, classify_address, normalize_vendor
 
 ADDRESS_ALIASES = ("地址", "Address", "PLC地址", "变量地址")
 NAME_ALIASES = ("名称", "Name", "Tag", "变量名")
@@ -45,7 +45,9 @@ def export_tags(
     address_column: str | None = None,
     name_column: str | None = None,
     description_column: str | None = None,
+    plc_vendor: str = "auto",
 ) -> None:
+    selected_vendor = normalize_vendor(plc_vendor)
     source = read_table(input_path)
     columns = [str(column) for column in source.columns]
     address_col = find_column(columns, address_column, ADDRESS_ALIASES, required=True)
@@ -54,7 +56,7 @@ def export_tags(
 
     rows: list[dict[str, object]] = []
     for _, row in source.iterrows():
-        result = classify_address(row[address_col])
+        result = classify_address(row[address_col], selected_vendor)
         rows.append(
             {
                 "名称": row[name_col] if name_col else "",
@@ -85,6 +87,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="EPLAN / PLC 标签识别与 Excel 导出工具")
     parser.add_argument("input", type=Path, help="输入 CSV、XLSX 或 XLS 文件")
     parser.add_argument("-o", "--output", type=Path, default=Path("eplan_tags_output.xlsx"))
+    parser.add_argument(
+        "--plc-vendor",
+        default="auto",
+        choices=SUPPORTED_VENDORS,
+        help="PLC品牌：auto、siemens、mitsubishi、beckhoff、codesys（默认 auto）",
+    )
     parser.add_argument("--address-column")
     parser.add_argument("--name-column")
     parser.add_argument("--description-column")
@@ -100,11 +108,12 @@ def main() -> int:
             args.address_column,
             args.name_column,
             args.description_column,
+            args.plc_vendor,
         )
     except (OSError, ValueError) as exc:
         print(f"错误：{exc}")
         return 1
-    print(f"处理完成：{args.output}")
+    print(f"处理完成：{args.output}（PLC品牌：{args.plc_vendor}）")
     return 0
 
 
