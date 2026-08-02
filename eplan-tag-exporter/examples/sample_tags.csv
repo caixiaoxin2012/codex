@@ -1,0 +1,10 @@
+名称,地址,说明
+StartPB,I0.0,启动按钮
+StopPB,I0.1,停止按钮
+RunLamp,Q0.0,运行指示灯
+Pressure,PIW256,压力传感器
+Valve1,Q0.2,电磁阀
+MitsubishiInput,X20,三菱输入点
+MitsubishiOutput,Y20,三菱输出点
+TwinCATInput,%IX0.0,倍福输入点
+TwinCATOutput,%QX0.0,倍福输出点
