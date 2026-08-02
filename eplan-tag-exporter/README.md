@@ -8,6 +8,7 @@
 - 支持 PLC 品牌自动识别或手动选择
 - 支持 Siemens、Mitsubishi、Beckhoff、CODESYS 常见地址
 - 自动分类 DI、DO、AI、AO、Memory、DB、Unknown
+- 提供 Windows 图形界面
 - 输出标准化 Excel 工作簿
 - 生成 IO 明细和统计表
 
@@ -21,7 +22,45 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## 使用
+## Windows 图形界面
+
+安装依赖后，双击：
+
+```text
+run_gui.pyw
+```
+
+或者在命令行运行：
+
+```bash
+python -m eplan_tag_exporter.gui
+```
+
+图形界面包含：
+
+- 输入文件选择
+- PLC 品牌下拉选择
+- 输出文件位置选择
+- 一键生成 Excel
+- 打开输出目录
+
+### 打包为独立 EXE
+
+在 Windows 中双击：
+
+```text
+build_windows.bat
+```
+
+脚本会自动安装 PyInstaller，并生成：
+
+```text
+dist\EPLAN-Tag-Exporter.exe
+```
+
+生成的 EXE 可以直接运行，无需用户另外安装 Python。
+
+## 命令行使用
 
 自动识别品牌：
 
@@ -85,7 +124,7 @@ python -m eplan_tag_exporter input.xlsx -o output.xlsx \
 - 安全 IO 分类
 - 元件代号识别，如 QF、KM、SB、SQ、YV、M
 - TIA Portal、TwinCAT、GX Works3、CODESYS 变量表导出
-- Windows 图形界面与品牌下拉框
+- 图形界面数据预览和列映射
 - AI 辅助生成中文说明
 
 ## 许可证
