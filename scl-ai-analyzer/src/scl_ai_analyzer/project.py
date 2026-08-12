@@ -136,6 +136,7 @@ class ProjectAnalyzer:
 
 def render_project_markdown(result: ProjectResult) -> str:
     from .ast import ProjectASTBuilder, render_ast_markdown
+    from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
     from .state_machine import StateMachineAnalyzer, render_state_machines_markdown
 
     counts: dict[str, int] = {key: 0 for key in BLOCK_PREFIX}
@@ -175,6 +176,9 @@ def render_project_markdown(result: ProjectResult) -> str:
     ast = ProjectASTBuilder().build(result)
     lines.extend(["", render_ast_markdown(ast), ""])
 
+    devices = DeviceLogicAnalyzer().analyze_project(result)
+    lines.extend([render_devices_markdown(devices), ""])
+
     analyzer = StateMachineAnalyzer()
     state_sections: list[str] = []
     for block in result.blocks:
@@ -193,7 +197,7 @@ def render_project_markdown(result: ProjectResult) -> str:
         [
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控，复杂 Graph/状态模式仍需后续适配与人工复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控；设备类型依据命名、FB 类型和已知标准块调用进行规则推断，复杂 Graph、硬件组态和工艺语义仍需后续适配与人工复核。",
             "",
         ]
     )
