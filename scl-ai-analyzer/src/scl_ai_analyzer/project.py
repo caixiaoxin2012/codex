@@ -136,6 +136,7 @@ class ProjectAnalyzer:
 
 def render_project_markdown(result: ProjectResult) -> str:
     from .ast import ProjectASTBuilder, render_ast_markdown
+    from .state_machine import StateMachineAnalyzer, render_state_machines_markdown
 
     counts: dict[str, int] = {key: 0 for key in BLOCK_PREFIX}
     for block in result.blocks:
@@ -173,11 +174,26 @@ def render_project_markdown(result: ProjectResult) -> str:
 
     ast = ProjectASTBuilder().build(result)
     lines.extend(["", render_ast_markdown(ast), ""])
+
+    analyzer = StateMachineAnalyzer()
+    state_sections: list[str] = []
+    for block in result.blocks:
+        machines = analyzer.analyze(block.text)
+        if machines:
+            state_sections.append(render_state_machines_markdown(block.name, machines))
+
+    lines.extend(["## 状态机分析", ""])
+    if state_sections:
+        for section in state_sections:
+            lines.extend([section, ""])
+    else:
+        lines.extend(["未识别到典型 `CASE <state> OF` 状态机。", ""])
+
     lines.extend(
         [
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控，复杂 Graph/状态模式仍需后续适配与人工复核。",
             "",
         ]
     )
