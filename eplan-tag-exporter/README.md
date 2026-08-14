@@ -2,7 +2,7 @@
 
 面向电气自动化工程师的 EPLAN / IO 标签整理工具。
 
-## V1.1.2 功能
+## V1.1.3 功能
 
 - 读取 CSV、XLSX、XLS 格式的标签表
 - 支持 PLC 品牌自动识别或手动选择
@@ -59,7 +59,7 @@ build_windows.bat
 脚本会自动安装 PyInstaller，并生成：
 
 ```text
-dist\EPLAN-Tag-Exporter-v1.1.2.exe
+dist\EPLAN-Tag-Exporter-v1.1.3.exe
 ```
 
 生成的 EXE 可以直接运行，无需用户另外安装 Python。
