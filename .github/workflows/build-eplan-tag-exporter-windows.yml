@@ -1,0 +1,53 @@
+name: Build EPLAN Tag Exporter Windows EXE
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'eplan-tag-exporter/**'
+      - '.github/workflows/build-eplan-tag-exporter-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: eplan-tag-exporter
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: eplan-tag-exporter/requirements.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name EPLAN-Tag-Exporter run_gui.pyw
+
+      - name: Verify EXE
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'dist/EPLAN-Tag-Exporter.exe')) { throw 'EXE build failed' }
+          Get-Item 'dist/EPLAN-Tag-Exporter.exe' | Format-List Name,Length,LastWriteTime
+
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPLAN-Tag-Exporter-Windows
+          path: eplan-tag-exporter/dist/EPLAN-Tag-Exporter.exe
+          if-no-files-found: error
+          retention-days: 30
