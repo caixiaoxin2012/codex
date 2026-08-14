@@ -23,6 +23,11 @@
 - 公司资料标注官网为 `www.sh_xilin.com`，但该域名在 2026-08-14 无法解析，不能可靠下载当前 favicon
 - 使用的是同一份公司原始资料中的官方 Logo；原图只有 80 x 76 像素，因此放大查看会有轻微模糊
 
+### 发布
+- GitHub：PR #4 已 squash 合并到 `main`（提交 `5e624b2`）
+- GitHub Actions：Windows 构建 run #7（ID `31814394652`）成功，27 项自动化测试通过
+- Google Drive：`EPLAN-Tag-Exporter-v1.1.2.exe`，文件 ID `1yHKqHSuf-KRZMDfXTlZNwPjjKohyFfYZ`
+
 ## V1.1.1 — 2026-08-14
 
 修复实际导出内容杂乱和容易打开错误文件的问题。
