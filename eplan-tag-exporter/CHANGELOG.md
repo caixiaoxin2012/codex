@@ -24,7 +24,10 @@
 - 官网阻止直接匿名下载原始图标资源，因此本版使用官网当前页面截图中的标识，不是原始 SVG/矢量文件；小尺寸来源放大后仍可能略有柔化
 
 ### 发布
-- GitHub、GitHub Actions 和 Google Drive 状态将在发布完成后补充
+- GitHub：PR #5 已 squash 合并到 `main`（提交 `7fc20ec`）
+- GitHub Actions：Windows 构建 run #8（ID `31816378069`）成功，27 项自动化测试通过
+- Google Drive：`EPLAN-Tag-Exporter-v1.1.3.exe`，文件 ID `1BHA51ggZQzuXaMtkkdLWl_daH_WRJ6qc`
+- 文件大小：39,920,672 字节；SHA-256：`4E47D3C291BAEC955DE162423B94314B488C09D02A7DD9A84002E8321162DA54`
 
 ## V1.1.2 - 2026-08-14
 
