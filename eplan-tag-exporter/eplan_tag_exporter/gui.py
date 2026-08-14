@@ -22,7 +22,7 @@ VENDOR_OPTIONS = {
 class EplanTagExporterApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("EPLAN PDF Tag Exporter V1.0")
+        self.title("EPLAN PDF Tag Exporter V1.1")
         self.geometry("820x520")
         self.minsize(720, 480)
 
@@ -31,6 +31,7 @@ class EplanTagExporterApp(tk.Tk):
         self.vendor_var = tk.StringVar(value="自动识别")
         self.xlsx_var = tk.BooleanVar(value=True)
         self.csv_var = tk.BooleanVar(value=False)
+        self.tia_xlsx_var = tk.BooleanVar(value=True)
         self.tia_csv_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="请选择 EPLAN PDF 图纸或兼容标签表。")
         self._build_ui()
@@ -63,9 +64,10 @@ class EplanTagExporterApp(tk.Tk):
         ttk.Label(root, text="输出格式").grid(row=5, column=0, sticky="nw", padx=(0, 12), pady=10)
         format_frame = ttk.Frame(root)
         format_frame.grid(row=5, column=1, columnspan=2, sticky="w", pady=8)
-        ttk.Checkbutton(format_frame, text="Excel (.xlsx)", variable=self.xlsx_var).grid(row=0, column=0, padx=(0, 18))
-        ttk.Checkbutton(format_frame, text="CSV (.csv)", variable=self.csv_var).grid(row=0, column=1, padx=(0, 18))
-        ttk.Checkbutton(format_frame, text="TIA Portal CSV", variable=self.tia_csv_var).grid(row=0, column=2)
+        ttk.Checkbutton(format_frame, text="Excel 明细 (.xlsx)", variable=self.xlsx_var).grid(row=0, column=0, padx=(0, 18))
+        ttk.Checkbutton(format_frame, text="TIA 格式 Excel", variable=self.tia_xlsx_var).grid(row=0, column=1, padx=(0, 18))
+        ttk.Checkbutton(format_frame, text="CSV (.csv)", variable=self.csv_var).grid(row=0, column=2, padx=(0, 18))
+        ttk.Checkbutton(format_frame, text="TIA Portal CSV", variable=self.tia_csv_var).grid(row=0, column=3)
 
         ttk.Separator(root).grid(row=6, column=0, columnspan=3, sticky="ew", pady=20)
         action_frame = ttk.Frame(root)
@@ -114,6 +116,8 @@ class EplanTagExporterApp(tk.Tk):
             formats.append("xlsx")
         if self.csv_var.get():
             formats.append("csv")
+        if self.tia_xlsx_var.get():
+            formats.append("tia_xlsx")
         if self.tia_csv_var.get():
             formats.append("tia_csv")
         return formats
@@ -171,3 +175,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -8,6 +8,29 @@
 - 次版本：新增功能，保持兼容
 - 修订版本：问题修复、小优化
 
+## V1.1.0 — 2026-08-14
+
+新增参考 `PLC变量表_TIA可导入.xlsx` 的 TIA Excel 工作簿导出。
+
+### 新增
+- 新增 `TIA 格式 Excel` 图形界面选项，并默认启用
+- 输出 `说明_汇总`、`TIA_All_总表`、`TIA_<项目>`、`原始提取_含重复`、`TIA导入步骤` 工作表
+- TIA 主表采用参考文件的 12 列结构、列宽、颜色和 `TableStyleMedium2` 条纹表格样式
+- 变量名按 `<项目>_<地址>` 生成，并对重复地址自动追加序号
+- Siemens I/Q/M 逻辑地址自动补 `%`，DI/DO/AI/AO/Memory/DB 映射为常见 TIA 数据类型
+- TIA CSV 扩展为 8 列，并增加三项 HMI 权限字段
+- 增加 TIA Excel/CSV 的结构、命名、地址、样式和汇总自动化测试
+
+### 兼容性说明
+- 参考文件使用列名 `Hmi Writable`；当前 Siemens V21 文档写作 `Hmi Writeable`，本版本优先保持参考文件格式
+- TIA Portal 不同版本导出的内部 ID、`TagTableProperties` 和语言列可能不同，程序不伪造这些版本相关字段
+- 导入生产 PLC 前必须在对应 TIA 版本中复核名称、地址、数据类型、冲突和安全点位
+
+### 发布文件
+- Windows EXE：`EPLAN-Tag-Exporter-v1.1.0.exe`
+- 样例：`PK06_TIA导出样例_v1.1.0.xlsx`
+- GitHub / Google Drive 发布状态：随本版本发布完成后更新
+
 ## V1.0.0 — 2026-08-14
 
 首个正式 Windows 发布版本。
@@ -45,3 +68,4 @@
 6. 对应 EXE 文件名
 7. GitHub 发布/合并状态
 8. Google Drive 发布状态
+

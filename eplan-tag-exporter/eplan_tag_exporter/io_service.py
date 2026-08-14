@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .__main__ import build_detail, export_tags
-from .exporters import export_csv, export_tia_csv
+from .exporters import export_csv, export_tia_csv, export_tia_xlsx
 
 
 @dataclass(frozen=True)
@@ -35,10 +35,13 @@ def export_outputs(
     if "csv" in selected:
         files.append(export_csv(detail, output_base))
     if "tia_csv" in selected:
-        files.append(export_tia_csv(detail, output_base))
+        files.append(export_tia_csv(detail, output_base, input_path))
+    if "tia_xlsx" in selected:
+        files.append(export_tia_xlsx(detail, output_base, input_path))
 
-    unknown = selected - {"xlsx", "csv", "tia_csv"}
+    unknown = selected - {"xlsx", "csv", "tia_csv", "tia_xlsx"}
     if unknown:
         raise ValueError(f"暂不支持的输出格式：{', '.join(sorted(unknown))}")
 
     return ExportResult(tuple(files), len(detail))
+

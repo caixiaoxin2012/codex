@@ -33,21 +33,26 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Run tests
+        shell: pwsh
+        run: python -m pytest -q
+
       - name: Build EXE
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name EPLAN-Tag-Exporter run_gui.pyw
+          pyinstaller --noconfirm --clean --onefile --windowed --name EPLAN-Tag-Exporter-v1.1.0 run_gui.pyw
 
       - name: Verify EXE
         shell: pwsh
         run: |
-          if (-not (Test-Path 'dist/EPLAN-Tag-Exporter.exe')) { throw 'EXE build failed' }
-          Get-Item 'dist/EPLAN-Tag-Exporter.exe' | Format-List Name,Length,LastWriteTime
+          if (-not (Test-Path 'dist/EPLAN-Tag-Exporter-v1.1.0.exe')) { throw 'EXE build failed' }
+          Get-Item 'dist/EPLAN-Tag-Exporter-v1.1.0.exe' | Format-List Name,Length,LastWriteTime
 
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: EPLAN-Tag-Exporter-Windows
-          path: eplan-tag-exporter/dist/EPLAN-Tag-Exporter.exe
+          name: EPLAN-Tag-Exporter-Windows-v1.1.0
+          path: eplan-tag-exporter/dist/EPLAN-Tag-Exporter-v1.1.0.exe
           if-no-files-found: error
           retention-days: 30
+

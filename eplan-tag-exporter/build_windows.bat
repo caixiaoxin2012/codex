@@ -13,9 +13,10 @@ pip install -r requirements.txt
 pip install pyinstaller
 
 pyinstaller --noconfirm --clean --onefile --windowed ^
-  --name EPLAN-Tag-Exporter ^
+  --name EPLAN-Tag-Exporter-v1.1.0 ^
   run_gui.pyw
 
 echo.
-echo Build complete: dist\EPLAN-Tag-Exporter.exe
+echo Build complete: dist\EPLAN-Tag-Exporter-v1.1.0.exe
 pause
+
