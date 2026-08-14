@@ -1,0 +1,52 @@
+name: Build SCL AI Analyzer Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scl-ai-analyzer/**"
+      - ".github/workflows/build-scl-ai-analyzer-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: scl-ai-analyzer
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: scl-ai-analyzer/pyproject.toml
+
+      - name: Install application and packaging dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[gui,packaging]"
+
+      - name: Compile-check Python sources
+        run: python -m compileall src
+
+      - name: Build standalone Windows EXE
+        run: python -m PyInstaller --noconfirm --clean packaging/SCL_AI_Analyzer.spec
+
+      - name: Show generated EXE
+        shell: pwsh
+        run: Get-Item dist/SCL_AI_Analyzer.exe | Format-List Name,Length,LastWriteTime
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCL-AI-Analyzer-v0.10.5-Windows
+          path: scl-ai-analyzer/dist/SCL_AI_Analyzer.exe
+          if-no-files-found: error
+          retention-days: 30
