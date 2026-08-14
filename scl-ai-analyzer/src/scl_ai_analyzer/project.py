@@ -99,7 +99,7 @@ class ProjectAnalyzer:
             )
             blocks.append(
                 SourceBlock(
-                    source_file=source_file,
+                    source_file=file_path if (file_path := source_file) else source_file,
                     block_type=block_type,
                     name=name,
                     text=block_text,
@@ -138,6 +138,7 @@ def render_project_markdown(result: ProjectResult) -> str:
     from .alarm_logic import AlarmLogicAnalyzer, render_alarm_markdown
     from .ast import ProjectASTBuilder, render_ast_markdown
     from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
+    from .knowledge_graph import EngineeringKnowledgeGraphBuilder, render_knowledge_graph_markdown
     from .state_machine import StateMachineAnalyzer, render_state_machines_markdown
 
     counts: dict[str, int] = {key: 0 for key in BLOCK_PREFIX}
@@ -176,6 +177,9 @@ def render_project_markdown(result: ProjectResult) -> str:
 
     ast = ProjectASTBuilder().build(result)
     lines.extend(["", render_ast_markdown(ast), ""])
+
+    graph = EngineeringKnowledgeGraphBuilder().build(result)
+    lines.extend([render_knowledge_graph_markdown(graph), ""])
 
     devices = DeviceLogicAnalyzer().analyze_project(result)
     lines.extend([render_devices_markdown(devices), ""])
@@ -221,7 +225,7 @@ def render_project_markdown(result: ProjectResult) -> str:
             "",
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控；设备与报警分类均为规则级候选，不等同于安全认证结论，关键联锁和安全逻辑必须由 PLC 工程师人工复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.3 增加统一工程知识图谱与双向定位索引；工程对象与代码行可互相追溯。状态机识别目前聚焦 CASE 型顺控；设备与报警分类均为规则级候选，不等同于安全认证结论，关键联锁和安全逻辑必须由 PLC 工程师人工复核。",
             "",
         ]
     )
