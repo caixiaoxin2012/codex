@@ -24,8 +24,10 @@
 
 ### 验证
 - 使用乱序、重复地址、无效地址、邻行噪声的测试数据验证清洗结果
-- 24 项自动化测试通过
+- 25 项自动化测试通过
 - Windows EXE：`EPLAN-Tag-Exporter-v1.1.1.exe`
+- GitHub：PR #3 已 squash 合并到 `main`（提交 `99aa163`）；Windows 构建 run #6 成功
+- Google Drive：EXE 文件 ID `1uKwmc6yE4NVevM1cuCKtcRX6O2YZIcKF`；整理示例 ID `1pTfGe7mjiq-7PNLhUd-MQqRCNr6nTZvE`
 
 ## V1.1.0 — 2026-08-14
 
