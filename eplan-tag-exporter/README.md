@@ -2,7 +2,7 @@
 
 面向电气自动化工程师的 EPLAN / IO 标签整理工具。
 
-## V1.1 功能
+## V1.1.1 功能
 
 - 读取 CSV、XLSX、XLS 格式的标签表
 - 支持 PLC 品牌自动识别或手动选择
@@ -13,6 +13,7 @@
 - 生成 IO 明细和统计表
 - 按参考工程格式生成 TIA Excel 工作簿：汇总、总表、项目表、原始提取、导入步骤
 - TIA 变量名按“项目_逻辑地址”生成，地址自动补 `%`，并生成 TIA CSV
+- TIA 主表自动自然排序、地址级去重，并把无效记录隔离到复核页
 
 ## 安装
 
@@ -57,7 +58,7 @@ build_windows.bat
 脚本会自动安装 PyInstaller，并生成：
 
 ```text
-dist\EPLAN-Tag-Exporter-v1.1.0.exe
+dist\EPLAN-Tag-Exporter-v1.1.1.exe
 ```
 
 生成的 EXE 可以直接运行，无需用户另外安装 Python。
