@@ -2,6 +2,18 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.10.5 - Windows Standalone EXE Packaging
+
+- 新增 `gui_v0105.py`，桌面窗口版本升级为 V0.10.5。
+- 新增 `desktop_entry.py`，作为 PyInstaller 稳定桌面入口。
+- 新增 `packaging/SCL_AI_Analyzer.spec`，使用 PyInstaller one-file/windowed 模式生成 `SCL_AI_Analyzer.exe`。
+- 新增 Windows EXE 版本资源 `packaging/version_info.txt`。
+- 新增 `build_windows.bat`，Windows 工程电脑可一键创建构建环境并输出 EXE。
+- 新增 `BUILD_EXE.md`，说明本地打包、自动构建和发布注意事项。
+- 新增 GitHub Actions 工作流 `.github/workflows/build-scl-ai-analyzer-windows.yml`，在 `windows-latest` 自动构建并上传 EXE Artifact。
+- `pyproject.toml` 新增 `packaging` 可选依赖并加入 PyInstaller，GUI 启动入口切换到 V0.10.5。
+- 当前 EXE 未配置商业代码签名证书；正式对外发布前建议补充签名并在 Windows 10/11 工程电脑做回归测试。
+
 ## V0.10.4 - Project-wide Block Call Cross Reference
 
 - 新增 `call_xref.py`，建立 FB/FC/OB/DB 全项目调用块交叉引用。
