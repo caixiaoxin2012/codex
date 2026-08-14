@@ -40,19 +40,18 @@ jobs:
       - name: Build EXE
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name EPLAN-Tag-Exporter-v1.1.1 run_gui.pyw
+          pyinstaller --noconfirm --clean --onefile --windowed --name EPLAN-Tag-Exporter-v1.1.2 --icon assets/xilin-app-icon.ico --add-data "assets/xilin-app-icon.ico;assets" --add-data "assets/xilin-app-icon.png;assets" run_gui.pyw
 
       - name: Verify EXE
         shell: pwsh
         run: |
-          if (-not (Test-Path 'dist/EPLAN-Tag-Exporter-v1.1.1.exe')) { throw 'EXE build failed' }
-          Get-Item 'dist/EPLAN-Tag-Exporter-v1.1.1.exe' | Format-List Name,Length,LastWriteTime
+          if (-not (Test-Path 'dist/EPLAN-Tag-Exporter-v1.1.2.exe')) { throw 'EXE build failed' }
+          Get-Item 'dist/EPLAN-Tag-Exporter-v1.1.2.exe' | Format-List Name,Length,LastWriteTime
 
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: EPLAN-Tag-Exporter-Windows-v1.1.1
-          path: eplan-tag-exporter/dist/EPLAN-Tag-Exporter-v1.1.1.exe
+          name: EPLAN-Tag-Exporter-Windows-v1.1.2
+          path: eplan-tag-exporter/dist/EPLAN-Tag-Exporter-v1.1.2.exe
           if-no-files-found: error
           retention-days: 30
-
