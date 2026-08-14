@@ -4,11 +4,12 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal
-from PySide6.QtGui import QAction, QFont
+from PySide6.QtGui import QAction, QFont, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -25,7 +26,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .project import ProjectAnalyzer, ProjectResult, render_project_markdown
+from .alarm_logic import AlarmLogicAnalyzer
+from .causal_chain import CausalChainAnalyzer
+from .device_logic import DeviceLogicAnalyzer
+from .project import ProjectAnalyzer, ProjectResult, SourceBlock, render_project_markdown
+from .standard_library import StandardLibraryAnalyzer
+from .state_machine import StateMachineAnalyzer
 from .tia_adapter import TIAExportAdapter
 
 
@@ -60,11 +66,12 @@ class AnalysisWorker(QObject):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("SCL AI Analyzer V0.10.0")
+        self.setWindowTitle("SCL AI Analyzer V0.10.1")
         self.resize(1500, 900)
         self.project_path: Path | None = None
         self.project: ProjectResult | None = None
         self.report_text = ""
+        self.current_block_index: int | None = None
         self._thread: QThread | None = None
         self._worker: AnalysisWorker | None = None
 
@@ -137,34 +144,49 @@ class MainWindow(QMainWindow):
     def _build_detail_panel(self) -> QWidget:
         panel = QWidget()
         layout = QVBoxLayout(panel)
-        layout.addWidget(QLabel("当前块分析结果"))
+        layout.addWidget(QLabel("当前块分析结果（双击分析条目跳转源码）"))
 
         self.detail_tabs = QTabWidget()
         self.detail_views: dict[str, QPlainTextEdit] = {}
-        for title in (
-            "概览",
-            "变量",
-            "调用关系",
-            "状态机",
-            "设备",
-            "报警联锁",
-            "标准块",
-            "因果链",
-            "源码",
-        ):
+        self.detail_tables: dict[str, QTableWidget] = {}
+
+        for title in ("概览", "变量"):
             view = QPlainTextEdit()
             view.setReadOnly(True)
-            if title == "源码":
-                view.setFont(QFont("Consolas", 10))
             self.detail_tabs.addTab(view, title)
             self.detail_views[title] = view
+
+        self._add_result_table("调用关系", ["行号", "目标", "类型", "FB 类型"])
+        self._add_result_table("状态机", ["行号", "状态变量", "当前状态", "下一状态", "条件"])
+        self._add_result_table("设备", ["行号", "实例/对象", "设备类型", "FB 类型", "置信度", "依据"])
+        self._add_result_table("报警联锁", ["行号", "等级", "类别", "信号", "条件/表达式"])
+        self._add_result_table("标准块", ["行号", "标准块", "家族", "功能", "接口角色"])
+        self._add_result_table("因果链", ["行号", "当前状态", "动作", "设备", "标准块", "完成条件", "下一状态", "报警/联锁"])
+
+        source_view = QPlainTextEdit()
+        source_view.setReadOnly(True)
+        source_view.setFont(QFont("Consolas", 10))
+        self.detail_tabs.addTab(source_view, "源码")
+        self.detail_views["源码"] = source_view
+
         layout.addWidget(self.detail_tabs)
         return panel
+
+    def _add_result_table(self, title: str, headers: list[str]) -> None:
+        table = QTableWidget(0, len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.cellDoubleClicked.connect(lambda row, _col, name=title: self._jump_from_table(name, row))
+        self.detail_tabs.addTab(table, title)
+        self.detail_tables[title] = table
 
     def _build_log_panel(self) -> QWidget:
         panel = QWidget()
         layout = QVBoxLayout(panel)
-
         top = QHBoxLayout()
         top.addWidget(QLabel("解析日志 / Warning / Error"))
         self.progress = QProgressBar()
@@ -222,6 +244,9 @@ class MainWindow(QMainWindow):
             self.populate_blocks(self.project)
             self.populate_project_object_tree(self.project)
             self.log("INFO", f"分析完成：识别 {len(self.project.blocks)} 个程序块")
+            if self.project.blocks:
+                self.block_table.selectRow(0)
+                self.show_block(0)
         self.progress.setValue(100)
         self.statusBar().showMessage("分析完成")
 
@@ -313,13 +338,17 @@ class MainWindow(QMainWindow):
     def on_tree_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if isinstance(data, tuple) and len(data) == 2 and data[0] == "block":
-            self.show_block(int(data[1]))
+            index = int(data[1])
+            self.block_table.selectRow(index)
+            self.show_block(index)
 
     def show_block(self, index: int) -> None:
         if not self.project:
             return
+        self.current_block_index = index
         block = self.project.blocks[index]
         analysis = block.analysis
+
         self.detail_views["概览"].setPlainText(
             f"名称：{block.name}\n"
             f"类型：{block.block_type}\n"
@@ -336,21 +365,143 @@ class MainWindow(QMainWindow):
                 for v in analysis.variables
             ) or "未识别到变量"
         )
-        self.detail_views["调用关系"].setPlainText(
-            "\n".join(
-                f"L{c.line_number}: {c.target} [{c.call_kind}]"
-                + (f" -> {c.fb_type}" if c.fb_type else "")
-                for c in analysis.calls
-            ) or "未识别到调用关系"
-        )
         self.detail_views["源码"].setPlainText(block.text)
 
-        # V0.10.0 first shell: detailed semantic tabs are populated from the project report.
-        for tab in ("状态机", "设备", "报警联锁", "标准块", "因果链"):
-            self.detail_views[tab].setPlainText(
-                "该模块的项目级分析结果已由核心解析器生成。\n"
-                "下一小版本将把结果按当前功能块直接映射到本页，并支持点击跳转源码行。"
+        self._populate_calls(block)
+        self._populate_states(block)
+        self._populate_devices(block)
+        self._populate_alarms(block)
+        self._populate_standard_blocks(block)
+        self._populate_causal_chains(block)
+        self.statusBar().showMessage(f"当前块：{block.name}")
+
+    def _populate_calls(self, block: SourceBlock) -> None:
+        rows = [
+            (call.line_number, call.target, call.call_kind, call.fb_type or "-")
+            for call in block.analysis.calls
+        ]
+        self._fill_table("调用关系", rows)
+
+    def _populate_states(self, block: SourceBlock) -> None:
+        rows: list[tuple[object, ...]] = []
+        for machine in StateMachineAnalyzer().analyze(block.text):
+            if machine.transitions:
+                for transition in machine.transitions:
+                    rows.append((
+                        transition.line_number,
+                        machine.selector,
+                        transition.source,
+                        transition.target,
+                        transition.condition or "无条件",
+                    ))
+            else:
+                rows.append((machine.start_line, machine.selector, "-", "-", "未识别到跳转"))
+        self._fill_table("状态机", rows)
+
+    def _populate_devices(self, block: SourceBlock) -> None:
+        rows: list[tuple[object, ...]] = []
+        for device in DeviceLogicAnalyzer().analyze_block(block):
+            line = next((item.line_number for item in device.evidence if item.line_number), 1)
+            evidence = "; ".join(
+                f"{item.kind}:{item.value}" + (f"@L{item.line_number}" if item.line_number else "")
+                for item in device.evidence
             )
+            rows.append((
+                line,
+                device.instance_name or device.block_name,
+                device.device_type,
+                device.fb_type or "-",
+                device.confidence,
+                evidence,
+            ))
+        self._fill_table("设备", rows)
+
+    def _populate_alarms(self, block: SourceBlock) -> None:
+        rows = [
+            (item.line_number, item.severity, item.category, item.symbol, item.expression)
+            for item in AlarmLogicAnalyzer().analyze(block.text)
+        ]
+        self._fill_table("报警联锁", rows)
+
+    def _populate_standard_blocks(self, block: SourceBlock) -> None:
+        rows = [
+            (
+                item.line_number,
+                item.canonical_name,
+                item.family,
+                item.purpose,
+                ", ".join(item.interface_roles) or "-",
+            )
+            for item in StandardLibraryAnalyzer().analyze_block(block)
+        ]
+        self._fill_table("标准块", rows)
+
+    def _populate_causal_chains(self, block: SourceBlock) -> None:
+        rows: list[tuple[object, ...]] = []
+        for chain in CausalChainAnalyzer().analyze_block(block):
+            actions = "; ".join(f"{item.action_kind}:{item.target}" for item in chain.actions) or "-"
+            devices = ", ".join(chain.device_names) or "-"
+            standards = ", ".join(chain.standard_blocks) or "-"
+            alarms = "; ".join(f"{item.category}:{item.symbol}" for item in chain.alarms) or "-"
+            rows.append((
+                chain.transition_line,
+                chain.source_state,
+                actions,
+                devices,
+                standards,
+                chain.completion_condition or "无条件",
+                chain.target_state,
+                alarms,
+            ))
+        self._fill_table("因果链", rows)
+
+    def _fill_table(self, title: str, rows: list[tuple[object, ...]]) -> None:
+        table = self.detail_tables[title]
+        table.clearContents()
+        table.setRowCount(len(rows))
+        for row_index, values in enumerate(rows):
+            for col_index, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                if col_index == 0:
+                    try:
+                        item.setData(Qt.ItemDataRole.UserRole, int(value))
+                    except (TypeError, ValueError):
+                        pass
+                table.setItem(row_index, col_index, item)
+        table.resizeColumnsToContents()
+
+    def _jump_from_table(self, title: str, row: int) -> None:
+        table = self.detail_tables.get(title)
+        if not table or row < 0:
+            return
+        item = table.item(row, 0)
+        if item is None:
+            return
+        line = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(line, int):
+            try:
+                line = int(item.text())
+            except ValueError:
+                return
+        self.jump_to_source_line(line)
+
+    def jump_to_source_line(self, line_number: int) -> None:
+        source = self.detail_views["源码"]
+        line_number = max(1, line_number)
+        cursor = source.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.Start)
+        if line_number > 1:
+            cursor.movePosition(
+                QTextCursor.MoveOperation.Down,
+                QTextCursor.MoveMode.MoveAnchor,
+                line_number - 1,
+            )
+        cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+        source.setTextCursor(cursor)
+        source.centerCursor()
+        self.detail_tabs.setCurrentWidget(source)
+        self.statusBar().showMessage(f"已定位到源码第 {line_number} 行")
+        self.log("INFO", f"源码定位：L{line_number}")
 
     def export_report(self) -> None:
         if not self.report_text:
