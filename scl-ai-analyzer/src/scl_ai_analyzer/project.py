@@ -137,6 +137,7 @@ class ProjectAnalyzer:
 def render_project_markdown(result: ProjectResult) -> str:
     from .alarm_logic import AlarmLogicAnalyzer, render_alarm_markdown
     from .ast import ProjectASTBuilder, render_ast_markdown
+    from .causal_chain import CausalChainAnalyzer, render_causal_chains_markdown
     from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
     from .knowledge_graph import EngineeringKnowledgeGraphBuilder, render_knowledge_graph_markdown
     from .standard_library import StandardLibraryAnalyzer, render_standard_library_markdown
@@ -206,6 +207,9 @@ def render_project_markdown(result: ProjectResult) -> str:
     state_actions = StateActionAnalyzer().analyze_project(result)
     lines.extend([render_state_actions_markdown(state_actions), ""])
 
+    causal_chains = CausalChainAnalyzer().analyze_project(result)
+    lines.extend([render_causal_chains_markdown(causal_chains), ""])
+
     alarm_analyzer = AlarmLogicAnalyzer()
     alarm_sections: list[str] = []
     alarm_count = 0
@@ -233,7 +237,7 @@ def render_project_markdown(result: ProjectResult) -> str:
             "",
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.4 增加标准功能库解析，并把 CASE 状态中的直接动作关联到设备对象与标准块。标准块接口摘要、设备识别、状态动作和报警分类均需结合实际 TIA 版本、硬件组态和现场工艺人工复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.5 增加状态机工程因果链，把状态动作、设备、标准块、跳转条件、下一状态以及同状态段报警/联锁连接起来。因果链仅基于可追溯代码关系，不替代工艺与安全设计复核。",
             "",
         ]
     )
