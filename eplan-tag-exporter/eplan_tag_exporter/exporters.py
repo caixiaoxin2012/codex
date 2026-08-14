@@ -15,13 +15,15 @@ def export_csv(detail: pd.DataFrame, output_path: Path) -> Path:
 def export_tia_csv(detail: pd.DataFrame, output_path: Path) -> Path:
     """Export a simple Siemens TIA Portal-friendly tag table template."""
     path = output_path.with_name(f"{output_path.stem}_TIA.csv")
+    names = detail.get("元件代号", pd.Series([""] * len(detail))).fillna("")
+    comments = detail.get("说明", pd.Series([""] * len(detail))).fillna("")
     tia = pd.DataFrame(
         {
-            "Name": detail.get("名称", pd.Series([""] * len(detail))).fillna(""),
+            "Name": names,
             "Path": [""] * len(detail),
             "Data Type": detail["类型"].map({"DI": "Bool", "DO": "Bool", "AI": "Int", "AO": "Int"}).fillna(""),
             "Logical Address": detail["标准地址"],
-            "Comment": detail.get("说明/所在行", pd.Series([""] * len(detail))).fillna(""),
+            "Comment": comments,
         }
     )
     tia.to_csv(path, index=False, encoding="utf-8-sig")
