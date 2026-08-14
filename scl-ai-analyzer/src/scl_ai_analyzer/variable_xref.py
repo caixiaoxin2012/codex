@@ -39,13 +39,14 @@ class VariableCrossReferenceAnalyzer:
     reads. Every reference keeps source and reverse-engineering context.
     """
 
-    _identifier = re.compile(r'#?"?[A-Za-z_][\w\.]*"?')
+    _symbol = r'#?(?:"[^"]+"|[A-Za-z_][\w]*)(?:\.[A-Za-z_][\w]*)*'
+    _identifier = re.compile(_symbol)
     _assignment = re.compile(
-        r'^\s*(?P<target>#?"?[A-Za-z_][\w\.]*"?)\s*:=',
+        rf'^\s*(?P<target>{_symbol})\s*:=',
         re.IGNORECASE,
     )
     _call_output = re.compile(
-        r'\b[A-Za-z_][\w]*\s*=>\s*(?P<target>#?"?[A-Za-z_][\w\.]*)',
+        rf'\b[A-Za-z_][\w]*\s*=>\s*(?P<target>{_symbol})',
         re.IGNORECASE,
     )
 
@@ -236,16 +237,16 @@ class VariableCrossReferenceAnalyzer:
 
     @staticmethod
     def _looks_global_variable(value: str) -> bool:
-        clean = value.strip().strip('"').lstrip("#")
+        clean = value.strip().lstrip("#")
         return not value.startswith("#") and "." in clean
 
     @staticmethod
     def _display(value: str) -> str:
-        return value.strip().strip('"').lstrip("#")
+        return value.strip().lstrip("#").replace('"', "")
 
     @staticmethod
     def _norm(value: str) -> str:
-        return value.strip().strip('"').lstrip("#").casefold()
+        return value.strip().lstrip("#").replace('"', "").casefold()
 
     @staticmethod
     def _local_key(block_name: str, normalized: str) -> str:
