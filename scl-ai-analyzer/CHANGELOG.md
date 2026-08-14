@@ -2,6 +2,19 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.10.4 - Project-wide Block Call Cross Reference
+
+- 新增 `call_xref.py`，建立 FB/FC/OB/DB 全项目调用块交叉引用。
+- FB 实例调用通过实例声明解析到实际 FB 类型；直接 FC/块调用按块名解析。
+- 未能解析的调用明确保留为 `unresolved`，不自动猜测目标块。
+- 每个程序块同时提供 Incoming / Outgoing 调用点，并保留调用者、实例、调用类型、文件、源码行和原始源码。
+- 调用点关联现有源码反向索引，可显示调用发生时所属 CASE 状态及相关工程对象。
+- 新增从 OB 出发的调用路径还原，可展示 `OB → 上层 FB/FC → 当前块` 的完整调用链。
+- 桌面版新增“调用块交叉引用”页签；选择程序块后自动显示调用路径与 IN/OUT 调用点。
+- 双击调用交叉引用结果可跨程序块跳转到实际调用源码位置。
+- 新增 `tests/test_call_xref.py`，覆盖 FB 实例解析、OB 根调用路径和 unresolved 调用保留。
+- `scl-ai-analyzer-gui` 启动入口切换到 V0.10.4 桌面实现。
+
 ## V0.10.3 - Project-wide Variable Cross Reference
 
 - 新增 `variable_xref.py`，建立变量全项目交叉引用索引。
