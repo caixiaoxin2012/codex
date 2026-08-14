@@ -4,16 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scl-ai-analyzer"
-version = "0.9.6"
-description = "Analyze Siemens SCL projects and generate traceable Chinese automatic-flow narratives from state-action-device-condition-next-state causal chains, with alarms/interlocks, standard-library semantics, engineering knowledge graph, bidirectional source mapping, and TIA Portal V16-V21 export support."
+version = "0.10.0"
+description = "Windows-first Siemens SCL/TIA engineering analyzer with PySide6 desktop GUI, traceable flow narratives, causal chains, alarms/interlocks, standard-library semantics, engineering knowledge graph, and bidirectional source mapping."
 requires-python = ">=3.10"
 authors = [{ name = "Shanghai Xilin Automation Technology Co., Ltd." }]
 
 [project.optional-dependencies]
+gui = ["PySide6>=6.7"]
 dev = ["pytest>=8"]
 
 [project.scripts]
 scl-ai-analyzer = "scl_ai_analyzer.cli:main"
+scl-ai-analyzer-gui = "scl_ai_analyzer.gui:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
