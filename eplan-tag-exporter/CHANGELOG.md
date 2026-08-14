@@ -29,7 +29,8 @@
 ### 发布文件
 - Windows EXE：`EPLAN-Tag-Exporter-v1.1.0.exe`
 - 样例：`PK06_TIA导出样例_v1.1.0.xlsx`
-- GitHub / Google Drive 发布状态：随本版本发布完成后更新
+- GitHub：PR #2 已 squash 合并到 `main`（提交 `b15615a`）；Windows 构建 run #5 成功
+- Google Drive：EXE 文件 ID `1RUffsg84nbBeZ6u4DqDx4hmWwbAOdIK1`；样例文件 ID `1WeIBy5L_Tt4aDHoaEavY03EVVMxrVm9h`
 
 ## V1.0.0 — 2026-08-14
 
