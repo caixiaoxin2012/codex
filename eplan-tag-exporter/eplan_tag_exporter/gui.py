@@ -19,12 +19,23 @@ VENDOR_OPTIONS = {
 }
 
 
+APP_VERSION = "1.1.2"
+
+
+def resource_path(*parts: str) -> Path:
+    """Resolve bundled assets in source and PyInstaller one-file builds."""
+    bundle_root = getattr(sys, "_MEIPASS", None)
+    base_path = Path(bundle_root) if bundle_root else Path(__file__).resolve().parents[1]
+    return base_path.joinpath(*parts)
+
+
 class EplanTagExporterApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("EPLAN PDF Tag Exporter V1.1.1")
+        self.title(f"EPLAN PDF Tag Exporter V{APP_VERSION}")
         self.geometry("820x520")
         self.minsize(720, 480)
+        self._set_app_icon()
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
@@ -35,6 +46,22 @@ class EplanTagExporterApp(tk.Tk):
         self.tia_csv_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="请选择 EPLAN PDF 图纸或兼容标签表。")
         self._build_ui()
+
+    def _set_app_icon(self) -> None:
+        ico_path = resource_path("assets", "xilin-app-icon.ico")
+        png_path = resource_path("assets", "xilin-app-icon.png")
+        if sys.platform == "win32" and ico_path.exists():
+            try:
+                self.iconbitmap(default=str(ico_path))
+                return
+            except tk.TclError:
+                pass
+        if png_path.exists():
+            try:
+                self._icon_image = tk.PhotoImage(file=str(png_path))
+                self.iconphoto(True, self._icon_image)
+            except tk.TclError:
+                pass
 
     def _build_ui(self) -> None:
         root = ttk.Frame(self, padding=24)
@@ -175,4 +202,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
