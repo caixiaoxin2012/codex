@@ -65,6 +65,3 @@ END_FUNCTION
     assert len(xref.outgoing) == 1
     assert xref.outgoing[0].target_name == "UnknownHelper"
     assert xref.outgoing[0].resolved_block is None
-'''.lstrip(),
-        encoding="utf-8",
-    )
