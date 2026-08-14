@@ -2,6 +2,17 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.10.0 - Windows Desktop GUI
+
+- 新增 `src/scl_ai_analyzer/gui.py`，采用 PySide6 构建 Windows 优先桌面界面。
+- 桌面布局包含：顶部导入/分析/导出工具栏、左侧项目树、中间 FB/FC/OB/DB 列表、右侧分析页签、底部解析日志与进度条。
+- 分析任务运行在 `QThread` 后台线程中，避免大型项目解析时阻塞界面。
+- 支持导入 TIA/SCL 项目目录并自动调用现有解析核心。
+- 当前块可查看概览、变量、调用关系和源码。
+- 预留状态机、设备、报警联锁、标准块、因果链等详细页签。
+- 新增 `scl-ai-analyzer-gui` 启动命令。
+- `PySide6` 作为 `gui` 可选依赖，保留原有 CLI 使用方式。
+
 ## V0.9.6 - Automatic Flow Narrative Generator
 
 - 新增 `flow_narrative.py`。
