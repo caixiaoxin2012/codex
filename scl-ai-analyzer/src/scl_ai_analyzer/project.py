@@ -135,6 +135,7 @@ class ProjectAnalyzer:
 
 
 def render_project_markdown(result: ProjectResult) -> str:
+    from .alarm_logic import AlarmLogicAnalyzer, render_alarm_markdown
     from .ast import ProjectASTBuilder, render_ast_markdown
     from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
     from .state_machine import StateMachineAnalyzer, render_state_machines_markdown
@@ -179,10 +180,10 @@ def render_project_markdown(result: ProjectResult) -> str:
     devices = DeviceLogicAnalyzer().analyze_project(result)
     lines.extend([render_devices_markdown(devices), ""])
 
-    analyzer = StateMachineAnalyzer()
+    state_analyzer = StateMachineAnalyzer()
     state_sections: list[str] = []
     for block in result.blocks:
-        machines = analyzer.analyze(block.text)
+        machines = state_analyzer.analyze(block.text)
         if machines:
             state_sections.append(render_state_machines_markdown(block.name, machines))
 
@@ -193,11 +194,34 @@ def render_project_markdown(result: ProjectResult) -> str:
     else:
         lines.extend(["未识别到典型 `CASE <state> OF` 状态机。", ""])
 
+    alarm_analyzer = AlarmLogicAnalyzer()
+    alarm_sections: list[str] = []
+    alarm_count = 0
+    for block in result.blocks:
+        findings = alarm_analyzer.analyze(block.text)
+        if findings:
+            alarm_count += len(findings)
+            alarm_sections.append(render_alarm_markdown(block.name, findings))
+
+    lines.extend(["## 报警与联锁分析", "", f"- **识别条目：** {alarm_count}", ""])
+    if alarm_sections:
+        for section in alarm_sections:
+            lines.extend([section, ""])
+    else:
+        lines.extend(["未识别到典型 Alarm/Fault/Warning/Interlock/Safety 赋值。", ""])
+
     lines.extend(
         [
+            "## 颜色分级说明",
+            "",
+            "- **red**：Safety / Fault / Error / Trip 候选，需优先人工复核。",
+            "- **orange**：Alarm 候选。",
+            "- **yellow**：Interlock / Permissive / Inhibit 候选。",
+            "- **blue**：Warning 候选。",
+            "",
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控；设备类型依据命名、FB 类型和已知标准块调用进行规则推断，复杂 Graph、硬件组态和工艺语义仍需后续适配与人工复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。状态机识别目前聚焦 CASE 型顺控；设备与报警分类均为规则级候选，不等同于安全认证结论，关键联锁和安全逻辑必须由 PLC 工程师人工复核。",
             "",
         ]
     )
