@@ -23,6 +23,7 @@ class VariableReference:
 @dataclass(frozen=True)
 class VariableCrossReference:
     variable: str
+    scope: str
     declarations: tuple[VariableReference, ...]
     reads: tuple[VariableReference, ...]
     writes: tuple[VariableReference, ...]
@@ -30,12 +31,12 @@ class VariableCrossReference:
 
 
 class VariableCrossReferenceAnalyzer:
-    """Build project-wide variable declarations/read/write references conservatively.
+    """Build project-wide declaration/read/write references with PLC variable scope.
 
-    Classification is syntax based: declaration lines, assignment LHS writes,
-    call-output (`=>`) writes and other occurrences as reads. The analyzer keeps
-    source lines and semantic reverse-links so the GUI can navigate to states,
-    alarms, devices and causal-chain objects without inventing PLC semantics.
+    Declared block variables are scoped to their FB/FC/OB/DB. Dotted/global symbols
+    are indexed project-wide. Classification is deliberately syntax based:
+    declaration lines, assignment LHS/call-output writes, and other occurrences as
+    reads. Every reference keeps source and reverse-engineering context.
     """
 
     _identifier = re.compile(r'#?"?[A-Za-z_][\w\.]*"?')
@@ -51,6 +52,7 @@ class VariableCrossReferenceAnalyzer:
     def build(self, project: ProjectResult) -> dict[str, VariableCrossReference]:
         buckets: dict[str, list[VariableReference]] = {}
         display_names: dict[str, str] = {}
+        scopes: dict[str, str] = {}
 
         for block in project.blocks:
             declared = {self._norm(item.name): item for item in block.analysis.variables}
@@ -58,23 +60,18 @@ class VariableCrossReferenceAnalyzer:
             declaration_lines = self._declaration_lines(block, declared)
 
             for normalized, variable in declared.items():
-                display_names.setdefault(normalized, variable.name)
+                key = self._local_key(block.name, normalized)
+                display_names.setdefault(key, variable.name)
+                scopes[key] = block.name
                 line_number = declaration_lines.get(normalized)
                 if line_number is not None:
                     self._append(
                         buckets,
-                        normalized,
-                        self._make_ref(
-                            variable.name,
-                            "DECLARE",
-                            block,
-                            line_number,
-                            reverse,
-                        ),
+                        key,
+                        self._make_ref(variable.name, "DECLARE", block, line_number, reverse),
                     )
 
-            lines = block.text.splitlines()
-            for line_number, raw_line in enumerate(lines, start=1):
+            for line_number, raw_line in enumerate(block.text.splitlines(), start=1):
                 identifiers = self._identifier.findall(raw_line)
                 if not identifiers:
                     continue
@@ -90,26 +87,31 @@ class VariableCrossReferenceAnalyzer:
                     if normalized in declaration_names:
                         continue
 
-                    # Prefer known project declarations, but also index dotted/global
-                    # symbols encountered in executable code so DB/tag references can
-                    # participate in cross-reference before full symbol resolution exists.
-                    display = display_names.get(normalized, self._display(raw_identifier))
-                    if normalized not in display_names and not self._looks_variable(raw_identifier):
+                    if normalized in declared:
+                        key = self._local_key(block.name, normalized)
+                        display = declared[normalized].name
+                        scopes[key] = block.name
+                    elif self._looks_global_variable(raw_identifier):
+                        key = self._global_key(normalized)
+                        display = self._display(raw_identifier)
+                        scopes[key] = "PROJECT"
+                    else:
                         continue
-                    display_names.setdefault(normalized, display)
 
+                    display_names.setdefault(key, display)
                     access = "WRITE" if normalized in write_targets else "READ"
                     self._append(
                         buckets,
-                        normalized,
+                        key,
                         self._make_ref(display, access, block, line_number, reverse),
                     )
 
         result: dict[str, VariableCrossReference] = {}
-        for normalized, refs in buckets.items():
+        for key, refs in buckets.items():
             unique = self._deduplicate(refs)
-            result[normalized] = VariableCrossReference(
-                variable=display_names.get(normalized, normalized),
+            result[key] = VariableCrossReference(
+                variable=display_names.get(key, key),
+                scope=scopes.get(key, "PROJECT"),
                 declarations=tuple(item for item in unique if item.access == "DECLARE"),
                 reads=tuple(item for item in unique if item.access == "READ"),
                 writes=tuple(item for item in unique if item.access == "WRITE"),
@@ -117,8 +119,21 @@ class VariableCrossReferenceAnalyzer:
             )
         return result
 
-    def lookup(self, project: ProjectResult, variable: str) -> VariableCrossReference | None:
-        return self.build(project).get(self._norm(variable))
+    def lookup(
+        self,
+        project: ProjectResult,
+        variable: str,
+        *,
+        block_name: str | None = None,
+        cache: dict[str, VariableCrossReference] | None = None,
+    ) -> VariableCrossReference | None:
+        index = cache if cache is not None else self.build(project)
+        normalized = self._norm(variable)
+        if block_name:
+            local = index.get(self._local_key(block_name, normalized))
+            if local:
+                return local
+        return index.get(self._global_key(normalized))
 
     def variables_at(self, block: SourceBlock, line_number: int) -> tuple[str, ...]:
         lines = block.text.splitlines()
@@ -130,9 +145,16 @@ class VariableCrossReferenceAnalyzer:
             normalized = self._norm(token)
             if normalized in declared:
                 values.append(declared[normalized])
-            elif self._looks_variable(token):
+            elif self._looks_global_variable(token):
                 values.append(self._display(token))
         return tuple(dict.fromkeys(values))
+
+    def cache_key(self, block: SourceBlock, variable: str) -> str:
+        normalized = self._norm(variable)
+        declared = {self._norm(item.name) for item in block.analysis.variables}
+        if normalized in declared:
+            return self._local_key(block.name, normalized)
+        return self._global_key(normalized)
 
     def _declaration_lines(
         self,
@@ -145,13 +167,12 @@ class VariableCrossReferenceAnalyzer:
                 normalized = self._norm(token)
                 if normalized not in declared or normalized in result:
                     continue
-                # SCL declarations normally contain ':' after the variable name.
-                match = re.search(
-                    rf'(?<![\w\.])#?"?{re.escape(self._display(token))}"?\s*:',
+                token_name = re.escape(self._display(token))
+                if re.search(
+                    rf'(?<![\w\.])#?"?{token_name}"?\s*:',
                     raw_line,
                     flags=re.IGNORECASE,
-                )
-                if match:
+                ):
                     result[normalized] = line_number
         return result
 
@@ -174,8 +195,7 @@ class VariableCrossReferenceAnalyzer:
     ) -> VariableReference:
         lines = block.text.splitlines()
         source_line = lines[line_number - 1].strip() if 1 <= line_number <= len(lines) else ""
-        links = reverse.get(line_number, ())
-        related = [item for item in links if item.kind != "VARIABLE"]
+        related = [item for item in reverse.get(line_number, ()) if item.kind != "VARIABLE"]
         return VariableReference(
             variable=variable,
             access=access,
@@ -184,8 +204,8 @@ class VariableCrossReferenceAnalyzer:
             source_file=block.source_file.name,
             line_number=line_number,
             source_line=source_line,
-            related_kinds=tuple(dict.fromkeys(item.kind for item in related)),
-            related_objects=tuple(dict.fromkeys(item.name for item in related)),
+            related_kinds=tuple(item.kind for item in related),
+            related_objects=tuple(item.name for item in related),
         )
 
     @staticmethod
@@ -198,10 +218,16 @@ class VariableCrossReferenceAnalyzer:
 
     @staticmethod
     def _deduplicate(items: list[VariableReference]) -> list[VariableReference]:
-        seen: set[tuple[str, int, str, str]] = set()
+        seen: set[tuple[str, str, int, str, str]] = set()
         result: list[VariableReference] = []
         for item in items:
-            key = (item.block_name.casefold(), item.line_number, item.access, item.variable.casefold())
+            key = (
+                item.source_file.casefold(),
+                item.block_name.casefold(),
+                item.line_number,
+                item.access,
+                item.variable.casefold(),
+            )
             if key in seen:
                 continue
             seen.add(key)
@@ -209,9 +235,9 @@ class VariableCrossReferenceAnalyzer:
         return result
 
     @staticmethod
-    def _looks_variable(value: str) -> bool:
-        clean = value.strip().strip('"')
-        return value.startswith("#") or "." in clean
+    def _looks_global_variable(value: str) -> bool:
+        clean = value.strip().strip('"').lstrip("#")
+        return not value.startswith("#") and "." in clean
 
     @staticmethod
     def _display(value: str) -> str:
@@ -220,3 +246,11 @@ class VariableCrossReferenceAnalyzer:
     @staticmethod
     def _norm(value: str) -> str:
         return value.strip().strip('"').lstrip("#").casefold()
+
+    @staticmethod
+    def _local_key(block_name: str, normalized: str) -> str:
+        return f"LOCAL:{block_name.casefold()}:{normalized}"
+
+    @staticmethod
+    def _global_key(normalized: str) -> str:
+        return f"GLOBAL:{normalized}"
