@@ -2,6 +2,18 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.10.3 - Project-wide Variable Cross Reference
+
+- 新增 `variable_xref.py`，建立变量全项目交叉引用索引。
+- 区分变量 `DECLARE / READ / WRITE`，并保留程序块、文件、源码行和原始代码。
+- 局部变量按 FB/FC/OB/DB 作用域隔离，避免不同程序块中同名 `#Ready` 被错误合并。
+- DB/全局成员变量按项目级汇总，支持 `DB_Process.Ready` 和 `"DB_Process".Ready` 形式。
+- 每条变量引用携带同一源码位置关联的状态机、报警、设备、调用和因果链对象。
+- 桌面版新增“变量交叉引用”页签；点击源码变量时自动显示其声明、读取和写入位置。
+- 双击交叉引用结果可跨 FB/FC/OB/DB 切换程序块并跳转到对应源码行。
+- 新增 `tests/test_variable_xref.py`，覆盖局部变量作用域和全局 DB 成员跨块引用。
+- `scl-ai-analyzer-gui` 启动入口切换到 V0.10.3 桌面实现。
+
 ## V0.10.2 - Reverse Source Navigation
 
 - 新增 `source_reverse.py`，建立源码行到工程对象的反向索引。
