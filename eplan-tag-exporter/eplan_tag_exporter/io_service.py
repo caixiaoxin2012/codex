@@ -29,7 +29,10 @@ def export_outputs(
     files: list[Path] = []
 
     if "xlsx" in selected:
-        xlsx = output_base.with_suffix(".xlsx")
+        if "tia_xlsx" in selected and "TIA可导入" in output_base.stem:
+            xlsx = output_base.with_name(f"{output_base.stem}_识别明细.xlsx")
+        else:
+            xlsx = output_base.with_suffix(".xlsx")
         export_tags(input_path, xlsx, plc_vendor=plc_vendor)
         files.append(xlsx)
     if "csv" in selected:

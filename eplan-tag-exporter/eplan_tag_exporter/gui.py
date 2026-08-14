@@ -22,14 +22,14 @@ VENDOR_OPTIONS = {
 class EplanTagExporterApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("EPLAN PDF Tag Exporter V1.1")
+        self.title("EPLAN PDF Tag Exporter V1.1.1")
         self.geometry("820x520")
         self.minsize(720, 480)
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
         self.vendor_var = tk.StringVar(value="自动识别")
-        self.xlsx_var = tk.BooleanVar(value=True)
+        self.xlsx_var = tk.BooleanVar(value=False)
         self.csv_var = tk.BooleanVar(value=False)
         self.tia_xlsx_var = tk.BooleanVar(value=True)
         self.tia_csv_var = tk.BooleanVar(value=False)
@@ -98,7 +98,7 @@ class EplanTagExporterApp(tk.Tk):
             return
         self.input_var.set(filename)
         input_path = Path(filename)
-        self.output_var.set(str(input_path.with_name(f"{input_path.stem}_IO点表.xlsx")))
+        self.output_var.set(str(input_path.with_name(f"{input_path.stem}_PLC变量表_TIA可导入.xlsx")))
         self.status_var.set("输入文件已选择，可以开始识别。")
 
     def _choose_output(self) -> None:
@@ -155,7 +155,7 @@ class EplanTagExporterApp(tk.Tk):
 
         names = "\n".join(path.name for path in result.files)
         self.status_var.set(f"完成：识别 {result.row_count} 条记录，生成 {len(result.files)} 个文件。")
-        messagebox.showinfo("完成", f"已生成：\n{names}")
+        messagebox.showinfo("完成", f"已生成：\n{names}\n\n请优先打开文件名中带“TIA”的工作簿。")
 
     def _open_output_folder(self) -> None:
         output_text = self.output_var.get().strip()

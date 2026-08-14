@@ -1,0 +1,10 @@
+名称,地址,说明,页码,关联置信度
+Output10,Q10.0,十号输出,20,low
+Invalid,ABC,无效地址,2,high
+Input10,I10.0,十号输入,12,medium
+Input2,I2.0,CPU-DI1-2 X3.1 | 二号输入,4,medium
+Input1Dup,I1.0,端子信息 X1.1,3,low
+Input1,I1.0,一号输入,3,high
+Analog,IW64,压力模拟量,15,high
+Output1,Q1.0,一号输出,7,high
+
