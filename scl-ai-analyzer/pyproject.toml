@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scl-ai-analyzer"
-version = "0.9.2"
-description = "Analyze Siemens SCL projects with project AST, TIA Portal V16-V21 exports, CASE state machines, industrial device recognition, and alarm/interlock classification."
+version = "0.9.3"
+description = "Analyze Siemens SCL projects with a traceable engineering knowledge graph, bidirectional source mapping, TIA Portal V16-V21 exports, state machines, devices, alarms and interlocks."
 requires-python = ">=3.10"
 authors = [{ name = "Shanghai Xilin Automation Technology Co., Ltd." }]
 
