@@ -1,6 +1,8 @@
 # Xilin application icon
 
-- `xilin-logo-original.jpg` is the original 80 x 76 embedded company logo extracted from the company-provided PDF `上海羲林自动化 团队成员介绍.pdf`.
-- `xilin-app-icon.png` and `xilin-app-icon.ico` use only the green/orange symbol from that logo so it remains recognizable at Windows taskbar sizes.
+- Official website: `https://www.xilin-auto.com`.
+- `xilin-website-logo-source.png` is the header logo captured from the current official website deployment (site version 11) on 2026-08-14.
+- `xilin-app-icon.png` and `xilin-app-icon.ico` use only the green/orange symbol from that website logo so it remains recognizable at Windows taskbar sizes.
 - The symbol was cropped, enlarged, and placed on a white square. It was not redrawn or recolored.
-- The company profile identifies the website as `www.sh_xilin.com`; that hostname did not resolve when checked on 2026-08-14, so a current website favicon could not be fetched reliably.
+- `xilin-logo-original.jpg` is retained only as the previous PDF reference and is no longer the active icon source.
+- The website blocks direct unauthenticated asset downloads, so the active source is a crop from the official live-site screenshot rather than the original SVG/vector file.
