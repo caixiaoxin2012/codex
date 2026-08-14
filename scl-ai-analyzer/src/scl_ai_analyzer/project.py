@@ -139,6 +139,8 @@ def render_project_markdown(result: ProjectResult) -> str:
     from .ast import ProjectASTBuilder, render_ast_markdown
     from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
     from .knowledge_graph import EngineeringKnowledgeGraphBuilder, render_knowledge_graph_markdown
+    from .standard_library import StandardLibraryAnalyzer, render_standard_library_markdown
+    from .state_actions import StateActionAnalyzer, render_state_actions_markdown
     from .state_machine import StateMachineAnalyzer, render_state_machines_markdown
 
     counts: dict[str, int] = {key: 0 for key in BLOCK_PREFIX}
@@ -181,6 +183,9 @@ def render_project_markdown(result: ProjectResult) -> str:
     graph = EngineeringKnowledgeGraphBuilder().build(result)
     lines.extend([render_knowledge_graph_markdown(graph), ""])
 
+    standard_uses = StandardLibraryAnalyzer().analyze_project(result)
+    lines.extend([render_standard_library_markdown(standard_uses), ""])
+
     devices = DeviceLogicAnalyzer().analyze_project(result)
     lines.extend([render_devices_markdown(devices), ""])
 
@@ -197,6 +202,9 @@ def render_project_markdown(result: ProjectResult) -> str:
             lines.extend([section, ""])
     else:
         lines.extend(["未识别到典型 `CASE <state> OF` 状态机。", ""])
+
+    state_actions = StateActionAnalyzer().analyze_project(result)
+    lines.extend([render_state_actions_markdown(state_actions), ""])
 
     alarm_analyzer = AlarmLogicAnalyzer()
     alarm_sections: list[str] = []
@@ -225,7 +233,7 @@ def render_project_markdown(result: ProjectResult) -> str:
             "",
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.3 增加统一工程知识图谱与双向定位索引；工程对象与代码行可互相追溯。状态机识别目前聚焦 CASE 型顺控；设备与报警分类均为规则级候选，不等同于安全认证结论，关键联锁和安全逻辑必须由 PLC 工程师人工复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.4 增加标准功能库解析，并把 CASE 状态中的直接动作关联到设备对象与标准块。标准块接口摘要、设备识别、状态动作和报警分类均需结合实际 TIA 版本、硬件组态和现场工艺人工复核。",
             "",
         ]
     )
