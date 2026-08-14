@@ -7,6 +7,8 @@ from .alarm_logic import AlarmLogicAnalyzer
 from .ast import ProjectASTBuilder, SourceRef
 from .device_logic import DeviceLogicAnalyzer
 from .project import BLOCK_PREFIX, ProjectResult
+from .standard_library import StandardLibraryAnalyzer
+from .state_actions import StateActionAnalyzer
 from .state_machine import StateMachineAnalyzer
 
 
@@ -67,7 +69,7 @@ class EngineeringKnowledgeGraph:
 
 
 class EngineeringKnowledgeGraphBuilder:
-    """Merge parser, AST, state, device and alarm results into one traceable graph."""
+    """Merge parser, AST, state, device, standard-block and alarm results into one graph."""
 
     def build(self, project: ProjectResult) -> EngineeringKnowledgeGraph:
         entities: list[GraphEntity] = []
@@ -80,7 +82,6 @@ class EngineeringKnowledgeGraphBuilder:
             seen_entities.add(entity.entity_id)
             entities.append(entity)
 
-        # Blocks, instances and cross-block calls come from the existing project AST.
         ast = ProjectASTBuilder().build(project)
         for node in ast.nodes:
             add_entity(
@@ -115,14 +116,16 @@ class EngineeringKnowledgeGraphBuilder:
         device_analyzer = DeviceLogicAnalyzer()
         state_analyzer = StateMachineAnalyzer()
         alarm_analyzer = AlarmLogicAnalyzer()
+        standard_analyzer = StandardLibraryAnalyzer()
+        action_analyzer = StateActionAnalyzer()
 
         for block in project.blocks:
             block_id = self._block_id(block.block_type, block.name)
 
             # Device abstraction layer.
-            for index, device in enumerate(device_analyzer.analyze_block(block), start=1):
+            for device in device_analyzer.analyze_block(block):
                 device_name = device.instance_name or block.name
-                device_id = f"DEVICE:{block_id}:{self._norm(device_name)}:{device.device_type.casefold()}"
+                device_id = self._device_id(block_id, device_name, device.device_type)
                 refs = tuple(
                     SourceRef(block.source_file, evidence.line_number)
                     for evidence in device.evidence
@@ -161,9 +164,36 @@ class EngineeringKnowledgeGraphBuilder:
                             )
                         )
 
+            # Known standard function/library calls.
+            for use in standard_analyzer.analyze_block(block):
+                standard_id = f"STANDARD_BLOCK:{self._norm(use.canonical_name)}"
+                add_entity(
+                    GraphEntity(
+                        entity_id=standard_id,
+                        kind="STANDARD_BLOCK",
+                        name=use.canonical_name,
+                        metadata={
+                            "family": use.family,
+                            "purpose": use.purpose,
+                            "interface_roles": ",".join(use.interface_roles),
+                        },
+                    )
+                )
+                relations.append(
+                    GraphRelation(
+                        source_id=block_id,
+                        target_id=standard_id,
+                        relation="USES_STANDARD_BLOCK",
+                        source_ref=SourceRef(block.source_file, use.line_number),
+                    )
+                )
+
             # CASE-based state machines and transitions.
+            machine_ids: dict[tuple[str, str], str] = {}
+            state_ids_by_machine: dict[str, dict[str, str]] = {}
             for machine_index, machine in enumerate(state_analyzer.analyze(block.text), start=1):
                 machine_id = f"STATE_MACHINE:{block_id}:{machine_index}:{self._norm(machine.selector)}"
+                machine_ids[(self._norm(machine.selector), str(machine_index))] = machine_id
                 add_entity(
                     GraphEntity(
                         entity_id=machine_id,
@@ -185,13 +215,12 @@ class EngineeringKnowledgeGraphBuilder:
                 state_ids: dict[str, str] = {}
                 for state in machine.states:
                     state_id = f"STATE:{machine_id}:{self._norm(state)}"
-                    state_ids[state] = state_id
+                    state_ids[self._norm(state)] = state_id
                     add_entity(
                         GraphEntity(
                             entity_id=state_id,
                             kind="STATE",
                             name=state,
-                            source_refs=(),
                             metadata={"selector": machine.selector},
                         )
                     )
@@ -202,14 +231,15 @@ class EngineeringKnowledgeGraphBuilder:
                             relation="HAS_STATE",
                         )
                     )
+                state_ids_by_machine[machine_id] = state_ids
 
                 for transition in machine.transitions:
                     source_state_id = state_ids.get(
-                        transition.source,
+                        self._norm(transition.source),
                         f"STATE:{machine_id}:{self._norm(transition.source)}",
                     )
                     target_state_id = state_ids.get(
-                        transition.target,
+                        self._norm(transition.target),
                         f"STATE:{machine_id}:{self._norm(transition.target)}",
                     )
                     if target_state_id not in seen_entities:
@@ -232,7 +262,67 @@ class EngineeringKnowledgeGraphBuilder:
                         )
                     )
 
-            # Alarm/interlock findings are graph objects with exact line links.
+            # Link state actions to state, device and standard-library entities.
+            machines_for_selector: dict[str, list[str]] = {}
+            for machine_id, state_ids in state_ids_by_machine.items():
+                entity = next((item for item in entities if item.entity_id == machine_id), None)
+                if entity:
+                    machines_for_selector.setdefault(self._norm(entity.name), []).append(machine_id)
+
+            for action in action_analyzer.analyze_block(block):
+                candidate_machines = machines_for_selector.get(self._norm(action.selector), [])
+                if not candidate_machines:
+                    continue
+                machine_id = candidate_machines[0]
+                state_id = state_ids_by_machine.get(machine_id, {}).get(self._norm(action.state))
+                if not state_id:
+                    continue
+                action_id = f"ACTION:{state_id}:{action.line_number}:{self._norm(action.target)}"
+                add_entity(
+                    GraphEntity(
+                        entity_id=action_id,
+                        kind="ACTION",
+                        name=action.target,
+                        source_refs=(SourceRef(block.source_file, action.line_number),),
+                        metadata={
+                            "action_kind": action.action_kind,
+                            "device_type": action.device_type or "",
+                            "standard_family": action.standard_family or "",
+                        },
+                    )
+                )
+                relations.append(
+                    GraphRelation(
+                        source_id=state_id,
+                        target_id=action_id,
+                        relation="HAS_ACTION",
+                        source_ref=SourceRef(block.source_file, action.line_number),
+                    )
+                )
+                if action.device_name and action.device_type:
+                    device_id = self._device_id(block_id, action.device_name, action.device_type)
+                    if device_id in seen_entities:
+                        relations.append(
+                            GraphRelation(
+                                source_id=action_id,
+                                target_id=device_id,
+                                relation="ACTS_ON_DEVICE",
+                                source_ref=SourceRef(block.source_file, action.line_number),
+                            )
+                        )
+                if action.standard_block:
+                    standard_id = f"STANDARD_BLOCK:{self._norm(action.standard_block)}"
+                    if standard_id in seen_entities:
+                        relations.append(
+                            GraphRelation(
+                                source_id=action_id,
+                                target_id=standard_id,
+                                relation="USES_STANDARD_BLOCK",
+                                source_ref=SourceRef(block.source_file, action.line_number),
+                            )
+                        )
+
+            # Alarm/interlock findings with exact line links.
             for finding in alarm_analyzer.analyze(block.text):
                 alarm_id = f"ALARM:{block_id}:{finding.line_number}:{self._norm(finding.symbol)}"
                 add_entity(
@@ -271,6 +361,10 @@ class EngineeringKnowledgeGraphBuilder:
     def _block_id(cls, block_type: str, name: str) -> str:
         return f"{BLOCK_PREFIX.get(block_type, block_type)}:{cls._norm(name)}"
 
+    @classmethod
+    def _device_id(cls, block_id: str, name: str, device_type: str) -> str:
+        return f"DEVICE:{block_id}:{cls._norm(name)}:{device_type.casefold()}"
+
 
 def render_knowledge_graph_markdown(graph: EngineeringKnowledgeGraph) -> str:
     counts: dict[str, int] = {}
@@ -286,7 +380,10 @@ def render_knowledge_graph_markdown(graph: EngineeringKnowledgeGraph) -> str:
         "| 实体类型 | 数量 |",
         "|---|---:|",
     ]
-    for kind in ("OB", "FB", "FC", "DB", "INSTANCE", "DEVICE", "STATE_MACHINE", "STATE", "ALARM", "UNRESOLVED"):
+    for kind in (
+        "OB", "FB", "FC", "DB", "INSTANCE", "DEVICE", "STANDARD_BLOCK",
+        "STATE_MACHINE", "STATE", "ACTION", "ALARM", "UNRESOLVED",
+    ):
         if counts.get(kind, 0):
             lines.append(f"| {kind} | {counts[kind]} |")
 
@@ -322,7 +419,7 @@ def render_knowledge_graph_markdown(graph: EngineeringKnowledgeGraph) -> str:
     lines.extend(
         [
             "",
-            "> 双向定位数据可供后续 GUI 使用：工程对象可跳转到源代码位置，源代码行也可反查相关报警、设备、状态机或调用关系。",
+            "> 双向定位数据可供后续 GUI 使用：状态可查动作，动作可查设备/标准块，工程对象可跳源代码，代码行也可反查相关对象。",
         ]
     )
     return "\n".join(lines)
