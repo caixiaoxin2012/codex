@@ -139,6 +139,7 @@ def render_project_markdown(result: ProjectResult) -> str:
     from .ast import ProjectASTBuilder, render_ast_markdown
     from .causal_chain import CausalChainAnalyzer, render_causal_chains_markdown
     from .device_logic import DeviceLogicAnalyzer, render_devices_markdown
+    from .flow_narrative import FlowNarrativeGenerator, render_flow_narratives_markdown
     from .knowledge_graph import EngineeringKnowledgeGraphBuilder, render_knowledge_graph_markdown
     from .standard_library import StandardLibraryAnalyzer, render_standard_library_markdown
     from .state_actions import StateActionAnalyzer, render_state_actions_markdown
@@ -210,6 +211,9 @@ def render_project_markdown(result: ProjectResult) -> str:
     causal_chains = CausalChainAnalyzer().analyze_project(result)
     lines.extend([render_causal_chains_markdown(causal_chains), ""])
 
+    flow_narratives = FlowNarrativeGenerator().generate(causal_chains)
+    lines.extend([render_flow_narratives_markdown(flow_narratives), ""])
+
     alarm_analyzer = AlarmLogicAnalyzer()
     alarm_sections: list[str] = []
     alarm_count = 0
@@ -237,7 +241,7 @@ def render_project_markdown(result: ProjectResult) -> str:
             "",
             "## 说明",
             "",
-            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.5 增加状态机工程因果链，把状态动作、设备、标准块、跳转条件、下一状态以及同状态段报警/联锁连接起来。因果链仅基于可追溯代码关系，不替代工艺与安全设计复核。",
+            "本功能面向从 TIA Portal 或项目库导出的 SCL 文本。它不会直接修改 `.zap16` 工程；自动生成的是独立、可审查的 `.scl` 文件。V0.9.6 新增自动流程说明生成器，将可追溯的状态机工程因果链转换为中文工程说明。流程说明只复述代码中已识别的状态、动作、设备、标准块、跳转条件、下一状态和报警/联锁，不自动补写未明确表达的工艺意图或安全结论。",
             "",
         ]
     )
