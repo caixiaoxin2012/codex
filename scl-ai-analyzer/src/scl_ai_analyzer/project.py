@@ -99,7 +99,7 @@ class ProjectAnalyzer:
             )
             blocks.append(
                 SourceBlock(
-                    source_file=file_path if (file_path := source_file) else source_file,
+                    source_file=source_file,
                     block_type=block_type,
                     name=name,
                     text=block_text,
