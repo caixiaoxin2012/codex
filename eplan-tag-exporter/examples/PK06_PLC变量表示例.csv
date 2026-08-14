@@ -1,0 +1,12 @@
+名称,地址,说明
+StartPB,I0.0,PK06-01 启动按钮
+StopPB,I0.1,PK06-01 停止按钮
+AutoMode,I0.2,PK06-01 自动模式
+SafetyOK,I0.3,PK06-01 安全回路正常
+RunLamp,Q0.0,PK06-01 运行指示灯
+FaultLamp,Q0.1,PK06-01 故障指示灯
+ValveOpen,Q0.2,PK06-01 电磁阀打开
+ValveClose,Q0.3,PK06-01 电磁阀关闭
+Pressure,IW64,PK06-01 压力模拟量
+SpeedSet,QW80,PK06-01 速度给定
+
