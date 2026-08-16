@@ -2,6 +2,22 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.11.0 - PLC Code Review
+
+- 新增 `tag_checker.py`，把 SCL AI Analyzer 从程序解析扩展到 PLC Code Review。
+- 第一版规则检查覆盖四类问题：变量命名、缺失注释、重复变量、未使用变量。
+- 每条检查结果保留 `rule_id`、严重度、程序块、变量、区域、数据类型、源码行、问题说明和整改建议。
+- 重复变量按同一程序块作用域判断；未使用变量复用现有变量交叉引用层，基于可追踪静态读写关系判断。
+- 命名检查采用保守基础规则，重点识别占位/通用名称、异常下划线和过短名称，不强行绑定某一家企业前缀规范。
+- 缺失注释支持同行 `//` 注释和声明前一行 `//` 工程注释。
+- 新增 `ai_review.py`，只把结构化规则检查结果交给 AI 生成中文审查说明，不发送完整 PLC 源码。
+- AI 中文说明默认使用 OpenAI Responses API；规则检查和离线规则摘要不依赖网络。
+- 桌面版新增 “PLC Code Review” 页签，展示规则问题、整改建议和中文审查说明。
+- 双击 Code Review 问题可跳转到对应程序块源码行。
+- 新增 `tests/test_tag_checker.py` 与 `tests/test_ai_review.py`。
+- Windows EXE 构建加入 AI 可选依赖，并在 GitHub Actions 中先运行测试再打包。
+- `scl-ai-analyzer-gui` 和 Windows EXE 入口切换到 V0.11.0。
+
 ## V0.10.5 - Windows Standalone EXE Packaging
 
 - 新增 `gui_v0105.py`，桌面窗口版本升级为 V0.10.5。
