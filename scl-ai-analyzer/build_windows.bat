@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ========================================
-echo SCL AI Analyzer V0.10.5 Windows EXE Build
+echo SCL AI Analyzer V0.11.0 Windows EXE Build
 echo ========================================
 
 if not exist ".venv-build\Scripts\python.exe" (
@@ -18,7 +18,7 @@ if errorlevel 1 goto :error
 echo [2/4] Installing build dependencies...
 python -m pip install --upgrade pip
 if errorlevel 1 goto :error
-python -m pip install -e ".[gui,packaging]"
+python -m pip install -e ".[gui,ai,packaging]"
 if errorlevel 1 goto :error
 
 echo [3/4] Cleaning old build output...
@@ -32,6 +32,8 @@ if errorlevel 1 goto :error
 echo.
 echo Build complete:
 echo %CD%\dist\SCL_AI_Analyzer.exe
+echo.
+echo NOTE: PLC Code Review rules work offline. AI Chinese explanation requires OPENAI_API_KEY at runtime.
 echo.
 pause
 exit /b 0
