@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_submodules
 
 
 project_root = Path.cwd()
-hiddenimports = collect_submodules("PySide6")
+hiddenimports = collect_submodules("PySide6") + collect_submodules("openai")
 
 a = Analysis(
     [str(project_root / "desktop_entry.py")],
