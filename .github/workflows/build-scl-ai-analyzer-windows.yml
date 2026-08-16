@@ -31,7 +31,10 @@ jobs:
       - name: Install application and packaging dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[gui,packaging]"
+          python -m pip install -e ".[gui,ai,packaging,dev]"
+
+      - name: Run tests
+        run: python -m pytest -q
 
       - name: Compile-check Python sources
         run: python -m compileall src
@@ -46,7 +49,7 @@ jobs:
       - name: Upload Windows EXE artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SCL-AI-Analyzer-v0.10.5-Windows
+          name: SCL-AI-Analyzer-v0.11.0-Windows
           path: scl-ai-analyzer/dist/SCL_AI_Analyzer.exe
           if-no-files-found: error
           retention-days: 30
