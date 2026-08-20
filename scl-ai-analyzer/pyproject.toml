@@ -20,7 +20,7 @@ scl-ai-analyzer = "scl_ai_analyzer.cli:main"
 scl-ai-analyzer-gui = "scl_ai_analyzer.gui_v0111:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
