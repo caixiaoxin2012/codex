@@ -49,7 +49,7 @@ jobs:
       - name: Upload Windows EXE artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SCL-AI-Analyzer-v0.11.0-Windows
+          name: SCL-AI-Analyzer-v0.11.1-Windows
           path: scl-ai-analyzer/dist/SCL_AI_Analyzer.exe
           if-no-files-found: error
           retention-days: 30
