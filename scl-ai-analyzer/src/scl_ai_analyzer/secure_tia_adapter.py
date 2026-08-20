@@ -77,10 +77,17 @@ class StreamingTIAVersionDetector(TIAVersionDetector):
 class TIAExportAdapter(BaseTIAExportAdapter):
     """TIA adapter variant that routes every XML file through SecurePLCXMLLoader."""
 
-    def __init__(self, *args, xml_loader: SecurePLCXMLLoader | None = None, **kwargs) -> None:
-        if "version_detector" not in kwargs or kwargs["version_detector"] is None:
-            kwargs["version_detector"] = StreamingTIAVersionDetector()
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        project_analyzer=None,
+        version_detector: TIAVersionDetector | None = None,
+        *,
+        xml_loader: SecurePLCXMLLoader | None = None,
+    ) -> None:
+        super().__init__(
+            project_analyzer=project_analyzer,
+            version_detector=version_detector or StreamingTIAVersionDetector(),
+        )
         self.xml_loader = xml_loader or SecurePLCXMLLoader()
         self._security_warnings: list[str] = []
 
