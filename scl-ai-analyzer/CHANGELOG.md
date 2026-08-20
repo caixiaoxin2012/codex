@@ -2,6 +2,21 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.11.1 - Secure XML Input
+
+- 新增 `secure_xml.py`，为 PLC/TIA XML 输入增加独立安全预检层。
+- XML 单文件硬上限调整为 **500 MB**；200 MB 以上记录大文件警告。
+- 增加解析时间限制、最大节点数量、最大嵌套深度和单节点属性数量限制。
+- 默认拒绝 `DOCTYPE` / `ENTITY` 声明，降低 XML 实体扩展类攻击风险。
+- 增加 TIA 常见 XML 节点允许列表；默认兼容模式下未知节点只告警，strict 模式可直接拒绝未知节点。
+- 新增滚动安全日志 `~/.scl_ai_analyzer/logs/xml_security.log`，记录解析成功、拒绝原因和异常，不记录完整 PLC/XML 源码。
+- 新增 `secure_tia_adapter.py`，桌面版和 CLI 的 TIA XML 统一经过安全加载器。
+- 大型 XML 的 TIA 版本识别改为只流式读取前 500 KB，不再使用 `read_text()` 载入整个文件。
+- 桌面版升级为 `gui_v0111.py`，XML 安全提示会进入底部解析日志。
+- 新增 `tests/test_secure_xml.py` 与 `tests/test_secure_tia_adapter.py`。
+- Windows EXE、版本资源、构建脚本和 GitHub Actions Artifact 同步升级为 V0.11.1。
+- 当前超时采用跨平台协作式检查；后续可进一步升级为隔离子进程硬超时，适合处理完全不可信的第三方 XML。
+
 ## V0.11.0 - PLC Code Review
 
 - 新增 `tag_checker.py`，把 SCL AI Analyzer 从程序解析扩展到 PLC Code Review。
