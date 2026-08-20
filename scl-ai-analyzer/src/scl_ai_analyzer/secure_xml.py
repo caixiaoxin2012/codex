@@ -61,8 +61,12 @@ DEFAULT_ALLOWED_LOCAL_NAMES = frozenset(
 )
 
 
-class PLCXMLLoadError(ValueError):
-    """Base exception for rejected or invalid PLC XML input."""
+class PLCXMLLoadError(ET.ParseError):
+    """Base exception for rejected or invalid PLC XML input.
+
+    It derives from ElementTree.ParseError so existing TIA adapter error handling can
+    treat rejected XML like a per-file parse failure instead of aborting the project.
+    """
 
 
 class XMLSizeLimitError(PLCXMLLoadError):
