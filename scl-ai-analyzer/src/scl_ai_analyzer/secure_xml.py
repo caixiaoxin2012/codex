@@ -13,6 +13,8 @@ DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_MAX_NODES = 2_000_000
 DEFAULT_MAX_DEPTH = 128
 DEFAULT_MAX_ATTRIBUTES = 128
+DEFAULT_MAX_TEXT_CHARS = 50_000_000
+DEFAULT_MAX_ATTRIBUTE_VALUE_CHARS = 1_000_000
 
 # The set is deliberately broad enough for common TIA Portal XML exports. Unknown
 # nodes are warnings by default because Siemens export schemas vary by release and
@@ -89,6 +91,8 @@ class XMLSecurityPolicy:
     max_nodes: int = DEFAULT_MAX_NODES
     max_depth: int = DEFAULT_MAX_DEPTH
     max_attributes_per_node: int = DEFAULT_MAX_ATTRIBUTES
+    max_text_chars_per_node: int = DEFAULT_MAX_TEXT_CHARS
+    max_attribute_value_chars: int = DEFAULT_MAX_ATTRIBUTE_VALUE_CHARS
     allowed_local_names: frozenset[str] = field(
         default_factory=lambda: DEFAULT_ALLOWED_LOCAL_NAMES
     )
@@ -110,8 +114,9 @@ class SecurePLCXMLLoader:
     """Validate and parse PLC/TIA XML with bounded resource policies.
 
     The timeout is cooperative: it is checked between parser events. The size,
-    node-count, depth and DTD/entity checks are hard limits. This keeps the loader
-    portable on Windows without spawning a second process for every XML file.
+    node-count, depth, text/attribute and DTD/entity checks are hard limits. This
+    keeps the loader portable on Windows without spawning a second process for every
+    XML file.
     """
 
     def __init__(
@@ -227,6 +232,12 @@ class SecurePLCXMLLoader:
                         f"节点 {self._local_name(element.tag)} 属性数量超过限制："
                         f">{self.policy.max_attributes_per_node}"
                     )
+                for key, value in element.attrib.items():
+                    if len(value) > self.policy.max_attribute_value_chars:
+                        raise XMLNodePolicyError(
+                            f"节点 {self._local_name(element.tag)} 的属性 {key} 内容过长："
+                            f">{self.policy.max_attribute_value_chars:,} 字符"
+                        )
 
                 local_name = self._local_name(element.tag)
                 if (
@@ -239,6 +250,16 @@ class SecurePLCXMLLoader:
                         unknown_seen.add(local_name)
                         unknown_names.append(local_name)
             else:
+                if element.text and len(element.text) > self.policy.max_text_chars_per_node:
+                    raise XMLNodePolicyError(
+                        f"节点 {self._local_name(element.tag)} 文本内容过长："
+                        f">{self.policy.max_text_chars_per_node:,} 字符"
+                    )
+                if element.tail and len(element.tail) > self.policy.max_text_chars_per_node:
+                    raise XMLNodePolicyError(
+                        f"节点 {self._local_name(element.tag)} 尾随文本过长："
+                        f">{self.policy.max_text_chars_per_node:,} 字符"
+                    )
                 depth = max(0, depth - 1)
 
         root = iterator.root
