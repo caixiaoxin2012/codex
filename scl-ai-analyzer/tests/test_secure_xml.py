@@ -65,6 +65,24 @@ def test_zero_timeout_rejects_before_full_parse(tmp_path: Path) -> None:
         SecurePLCXMLLoader(policy).load(path)
 
 
+def test_rejects_oversized_node_text(tmp_path: Path) -> None:
+    path = tmp_path / "text.xml"
+    path.write_text("<Document><Text>12345</Text></Document>", encoding="utf-8")
+    policy = XMLSecurityPolicy(max_text_chars_per_node=4)
+
+    with pytest.raises(XMLNodePolicyError):
+        SecurePLCXMLLoader(policy).load(path)
+
+
+def test_rejects_oversized_attribute_value(tmp_path: Path) -> None:
+    path = tmp_path / "attribute.xml"
+    path.write_text('<Document Name="12345" />', encoding="utf-8")
+    policy = XMLSecurityPolicy(max_attribute_value_chars=4)
+
+    with pytest.raises(XMLNodePolicyError):
+        SecurePLCXMLLoader(policy).load(path)
+
+
 def test_rejects_non_xml_extension(tmp_path: Path) -> None:
     path = tmp_path / "project.txt"
     path.write_text("<Document />", encoding="utf-8")
