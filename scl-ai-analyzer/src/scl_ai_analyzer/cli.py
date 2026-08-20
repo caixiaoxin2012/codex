@@ -5,14 +5,15 @@ from pathlib import Path
 
 from .parser import SCLParser, render_markdown
 from .project import ProjectAnalyzer, render_project_markdown
+from .secure_tia_adapter import TIAExportAdapter
 from .tag_checker import TagChecker, render_tag_check_markdown
-from .tia_adapter import TIAExportAdapter, render_tia_markdown
+from .tia_adapter import render_tia_markdown
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="scl-ai-analyzer",
-        description="Analyze Siemens SCL files, exported projects, TIA XML exports, and PLC tag quality.",
+        description="Analyze Siemens SCL files, exported projects, and TIA XML exports.",
     )
     parser.add_argument("input", type=Path, help="SCL file or exported project directory")
     parser.add_argument(
@@ -33,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Export detected FB/FC/OB/DB blocks as individual .scl files",
     )
+    parser.add_argument(
+        "--code-review",
+        action="store_true",
+        help="Append PLC variable-quality Code Review checks to project/TIA reports",
+    )
     return parser
 
 
@@ -40,27 +46,27 @@ def main() -> int:
     args = build_parser().parse_args()
     try:
         mode = _resolve_mode(args.input, args.mode)
+        review_project = None
+
         if mode == "single":
             result = SCLParser().parse_file(args.input)
             report = render_markdown(result)
             summary = f"{result.block.name or 'unknown block'}, {len(result.variables)} variables"
         elif mode == "project":
             project = ProjectAnalyzer().scan(args.input)
-            tag_report = TagChecker().check_project(project)
-            report = render_project_markdown(project).rstrip() + "\n\n" + render_tag_check_markdown(tag_report) + "\n"
+            review_project = project
+            report = render_project_markdown(project)
             exported = ()
             if args.export_dir:
                 exported = ProjectAnalyzer.export_blocks(project, args.export_dir)
             summary = (
                 f"{len(project.source_files)} source files, "
-                f"{len(project.blocks)} blocks, "
-                f"{len(tag_report.issues)} code-review issues, "
-                f"{len(exported)} exported"
+                f"{len(project.blocks)} blocks, {len(exported)} exported"
             )
         else:
             tia_result = TIAExportAdapter().scan(args.input)
-            tag_report = TagChecker().check_project(tia_result.scl_project)
-            report = render_tia_markdown(tia_result).rstrip() + "\n\n" + render_tag_check_markdown(tag_report) + "\n"
+            review_project = tia_result.scl_project
+            report = render_tia_markdown(tia_result)
             exported = ()
             if args.export_dir:
                 exported = ProjectAnalyzer.export_blocks(
@@ -69,9 +75,12 @@ def main() -> int:
             summary = (
                 f"{len(tia_result.items)} TIA objects, "
                 f"{len(tia_result.scl_project.blocks)} parsed SCL blocks, "
-                f"{len(tag_report.issues)} code-review issues, "
                 f"{len(exported)} exported"
             )
+
+        if args.code_review and review_project is not None:
+            tag_report = TagChecker().check_project(review_project)
+            report = report.rstrip() + "\n\n" + render_tag_check_markdown(tag_report) + "\n"
 
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report, encoding="utf-8")
