@@ -1,4 +1,4 @@
-from scl_ai_analyzer.gui_v0110 import main
+from scl_ai_analyzer.gui_v0111 import main
 
 
 if __name__ == "__main__":
