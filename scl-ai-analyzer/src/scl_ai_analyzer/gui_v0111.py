@@ -67,6 +67,12 @@ class MainWindow(BaseMainWindow):
         self._thread.finished.connect(self._thread.deleteLater)
         self._thread.start()
 
+    def on_progress(self, value: int, message: str) -> None:
+        self.progress.setValue(value)
+        self.statusBar().showMessage(message)
+        level = "WARNING" if message.startswith("XML安全提示：") else "INFO"
+        self.log(level, message)
+
 
 def main() -> int:
     app = QApplication(sys.argv)
