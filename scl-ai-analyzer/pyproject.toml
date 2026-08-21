@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scl-ai-analyzer"
-version = "0.11.1"
-description = "Windows-first Siemens SCL/TIA PLC Code Review tool with secure XML input guards, tag-quality checks, optional AI Chinese review explanations, standalone EXE packaging, project-wide block-call and variable cross references, OB-rooted call paths, bidirectional source navigation, semantic block analysis, flow narratives, causal chains, alarms/interlocks, standard-library semantics, and engineering knowledge graph support."
+version = "0.11.2"
+description = "Windows-first Siemens SCL/TIA PLC Code Review tool with SHA-256 export integrity manifests, secure XML input guards, tag-quality checks, optional AI Chinese review explanations, standalone EXE packaging, project-wide block-call and variable cross references, OB-rooted call paths, bidirectional source navigation, semantic block analysis, flow narratives, causal chains, alarms/interlocks, standard-library semantics, and engineering knowledge graph support."
 requires-python = ">=3.10"
 authors = [{ name = "Shanghai Xilin Automation Technology Co., Ltd." }]
 
@@ -17,7 +17,7 @@ dev = ["pytest>=8"]
 
 [project.scripts]
 scl-ai-analyzer = "scl_ai_analyzer.cli:main"
-scl-ai-analyzer-gui = "scl_ai_analyzer.gui_v0111:main"
+scl-ai-analyzer-gui = "scl_ai_analyzer.gui_v0112:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
