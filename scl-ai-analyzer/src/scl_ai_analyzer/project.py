@@ -131,6 +131,18 @@ class ProjectAnalyzer:
             output_path.write_text(block.text, encoding="utf-8")
             exported.append(output_path)
 
+        if exported:
+            # V0.11.2: every export directory receives a portable SHA-256 manifest
+            # plus per-file sidecars. The integrity layer also supports .xml files,
+            # so any XML exported/copied into the same output directory is covered.
+            from .integrity_checker import IntegrityChecker
+
+            IntegrityChecker().generate_directory(
+                target,
+                recursive=False,
+                write_sidecars=True,
+            )
+
         return tuple(exported)
 
 
