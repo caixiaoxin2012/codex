@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ========================================
-echo SCL AI Analyzer V0.11.1 Windows EXE Build
+echo SCL AI Analyzer V0.11.2 Windows EXE Build
 echo ========================================
 
 if not exist ".venv-build\Scripts\python.exe" (
@@ -33,6 +33,7 @@ echo.
 echo Build complete:
 echo %CD%\dist\SCL_AI_Analyzer.exe
 echo.
+echo NOTE: Exported SCL/XML files can carry SHA-256 sidecars and SHA256SUMS.txt manifests.
 echo NOTE: XML files are limited to 500 MB and pass secure input checks before TIA parsing.
 echo NOTE: PLC Code Review rules work offline. AI Chinese explanation requires OPENAI_API_KEY at runtime.
 echo.
