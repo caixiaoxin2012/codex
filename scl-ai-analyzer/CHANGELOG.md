@@ -2,6 +2,21 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.11.2 - Export Integrity / SHA-256
+
+- 新增 `integrity_checker.py`，为导出的 `.scl/.xml` 文件生成 SHA-256。
+- SHA-256 采用分块流式读取，默认每次 1 MB，不为大型 XML 一次性分配完整文件内存。
+- `ProjectAnalyzer.export_blocks()` 导出 SCL 后自动生成统一 `SHA256SUMS.txt` 清单。
+- 每个受支持文件同时生成 `<filename>.sha256` sidecar，便于单文件交付时独立校验。
+- 清单使用相对路径，整个导出目录复制到其他工程电脑后仍可复核。
+- 导出目录若同时包含 `.xml`，会与 `.scl` 一起纳入统一 SHA-256 清单。
+- 新增 `verify_manifest()`，可识别 `ok / mismatch / missing / unsafe_path`。
+- 新增 `verify_sidecar()`，支持单文件 SHA-256 sidecar 校验。
+- 清单验证阻止路径逃逸到清单目录之外，避免恶意 manifest 引用任意本地文件。
+- 新增 `tests/test_integrity_checker.py`，覆盖已知摘要、SCL/XML 清单、篡改检测和自动导出哈希。
+- 桌面版、Windows EXE 版本资源与 GitHub Actions Artifact 同步升级为 V0.11.2。
+- SHA-256 用于判断文件内容是否被修改，不等同于数字签名或可信发布者身份认证。
+
 ## V0.11.1 - Secure XML Input
 
 - 新增 `secure_xml.py`，为 PLC/TIA XML 输入增加独立安全预检层。
