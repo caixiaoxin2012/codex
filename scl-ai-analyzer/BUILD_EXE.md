@@ -1,6 +1,6 @@
-# SCL AI Analyzer V0.11.1 - Windows EXE
+# SCL AI Analyzer V0.11.2 - Windows EXE
 
-V0.11.1 保留 Windows 独立 EXE 打包流程，并加入 Secure XML Input、PLC Code Review 与可选 AI 中文说明。目标产物：
+V0.11.2 保留 Windows 独立 EXE 打包流程，并加入 Export Integrity / SHA-256、Secure XML Input、PLC Code Review 与可选 AI 中文说明。目标产物：
 
 `dist/SCL_AI_Analyzer.exe`
 
@@ -20,6 +20,32 @@ V0.11.1 保留 Windows 独立 EXE 打包流程，并加入 Secure XML Input、PL
 构建完成后 EXE 位于：
 
 `dist/SCL_AI_Analyzer.exe`
+
+## Export Integrity / SHA-256
+
+V0.11.2 新增 `integrity_checker.py`：
+
+- 支持 `.scl` 与 `.xml` 文件 SHA-256。
+- 哈希按 1 MB 数据块流式计算，不会为了算 SHA-256 把大型 XML 一次性读入内存。
+- `ProjectAnalyzer.export_blocks()` 导出程序块后自动生成 `SHA256SUMS.txt`。
+- 每个 `.scl/.xml` 文件可同时生成 `<filename>.sha256` sidecar。
+- `SHA256SUMS.txt` 使用相对路径，导出目录整体复制到另一台工程电脑后仍可校验。
+- `IntegrityChecker.verify_manifest()` 可识别 `ok / mismatch / missing / unsafe_path`。
+- `IntegrityChecker.verify_sidecar()` 可对单文件 sidecar 做复核。
+- 若导出目录中同时存在 `.xml`，统一 SHA-256 清单会将其一起纳入。
+
+示例导出目录：
+
+```text
+export/
+  FB_Main.scl
+  FB_Main.scl.sha256
+  Project.xml
+  Project.xml.sha256
+  SHA256SUMS.txt
+```
+
+SHA-256 用于判断文件内容是否变化；它不是数字签名，也不能证明文件来自可信发布者。正式发布的软件本体仍建议使用代码签名证书。
 
 ## Secure XML Input
 
@@ -48,7 +74,7 @@ TIA XML 在进入解析器前先经过安全预检：
 
 ## GitHub Actions 自动构建
 
-仓库根目录的 `.github/workflows/build-scl-ai-analyzer-windows.yml` 会先运行测试，再在 Windows Runner 上构建 EXE，并上传名为 `SCL-AI-Analyzer-v0.11.1-Windows` 的 Actions Artifact。
+仓库根目录的 `.github/workflows/build-scl-ai-analyzer-windows.yml` 会先运行测试，再在 Windows Runner 上构建 EXE，并上传名为 `SCL-AI-Analyzer-v0.11.2-Windows` 的 Actions Artifact。
 
 也可以在 GitHub Actions 页面手动运行 `Build SCL AI Analyzer Windows EXE`。
 
