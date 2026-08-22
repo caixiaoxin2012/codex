@@ -1,6 +1,6 @@
-# SCL AI Analyzer V0.11.2 - Windows EXE
+# SCL AI Analyzer V0.11.3 - Windows EXE
 
-V0.11.2 保留 Windows 独立 EXE 打包流程，并加入 Export Integrity / SHA-256、Secure XML Input、PLC Code Review 与可选 AI 中文说明。目标产物：
+V0.11.3 保留 Windows 独立 EXE 打包流程，并加入 Unified Secure Loader、Export Integrity / SHA-256、Secure XML Input、PLC Code Review 与可选 AI 中文说明。目标产物：
 
 `dist/SCL_AI_Analyzer.exe`
 
@@ -21,9 +21,28 @@ V0.11.2 保留 Windows 独立 EXE 打包流程，并加入 Export Integrity / SH
 
 `dist/SCL_AI_Analyzer.exe`
 
+## Unified Secure Loader
+
+V0.11.3 新增 `secure_loader.py`，统一 `.scl/.xml` 输入链路：
+
+1. 验证扩展名、文件存在性和文件大小。
+2. 流式计算 SHA-256。
+3. 优先读取 `<filename>.sha256`，其次读取同目录 `SHA256SUMS.txt` 进行完整性校验。
+4. SHA-256 不一致时立即拒绝，不进入 SCL/XML 解析器。
+5. 无参考哈希时默认标记为 `computed_only` 并继续兼容解析；strict 模式可配置为无参考哈希直接拒绝。
+6. 通过完整性检查后才进入 SCL 解析器或 Secure XML parser。
+
+统一审计日志写入：
+
+`%USERPROFILE%\.scl_ai_analyzer\logs\secure_loader.log`
+
+日志包含来源、文件路径、文件类型、大小、SHA-256、哈希状态、参考哈希文件、哈希耗时、解析耗时、总耗时、异常类型和异常信息；不会记录完整 PLC 源码。
+
+用户入口中，CLI 单 SCL、普通 SCL 项目、桌面项目分析以及 TIA 导出目录中的 `.scl/.xml` 都使用统一安全加载链路。`.awl/.udt/.db` 当前暂保留兼容读取路径。
+
 ## Export Integrity / SHA-256
 
-V0.11.2 新增 `integrity_checker.py`：
+V0.11.2 起提供 `integrity_checker.py`：
 
 - 支持 `.scl` 与 `.xml` 文件 SHA-256。
 - 哈希按 1 MB 数据块流式计算，不会为了算 SHA-256 把大型 XML 一次性读入内存。
@@ -32,7 +51,7 @@ V0.11.2 新增 `integrity_checker.py`：
 - `SHA256SUMS.txt` 使用相对路径，导出目录整体复制到另一台工程电脑后仍可校验。
 - `IntegrityChecker.verify_manifest()` 可识别 `ok / mismatch / missing / unsafe_path`。
 - `IntegrityChecker.verify_sidecar()` 可对单文件 sidecar 做复核。
-- 若导出目录中同时存在 `.xml`，统一 SHA-256 清单会将其一起纳入。
+- V0.11.3 增加 sidecar/manifest 参考值查找，统一安全加载器可在解析前自动使用这些哈希。
 
 示例导出目录：
 
@@ -74,7 +93,7 @@ TIA XML 在进入解析器前先经过安全预检：
 
 ## GitHub Actions 自动构建
 
-仓库根目录的 `.github/workflows/build-scl-ai-analyzer-windows.yml` 会先运行测试，再在 Windows Runner 上构建 EXE，并上传名为 `SCL-AI-Analyzer-v0.11.2-Windows` 的 Actions Artifact。
+仓库根目录的 `.github/workflows/build-scl-ai-analyzer-windows.yml` 会先运行测试，再在 Windows Runner 上构建 EXE，并上传名为 `SCL-AI-Analyzer-v0.11.3-Windows` 的 Actions Artifact。
 
 也可以在 GitHub Actions 页面手动运行 `Build SCL AI Analyzer Windows EXE`。
 
