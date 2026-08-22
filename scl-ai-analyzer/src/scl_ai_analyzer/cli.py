@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .parser import SCLParser, render_markdown
+from .parser import render_markdown
 from .project import ProjectAnalyzer, render_project_markdown
+from .secure_loader import SecureLoader
+from .secure_project import SecureProjectAnalyzer
 from .secure_tia_adapter import TIAExportAdapter
 from .tag_checker import TagChecker, render_tag_check_markdown
 from .tia_adapter import render_tia_markdown
@@ -49,11 +51,17 @@ def main() -> int:
         review_project = None
 
         if mode == "single":
-            result = SCLParser().parse_file(args.input)
+            loaded = SecureLoader().load(args.input, source="cli_single_scl")
+            result = loaded.scl_analysis
+            if result is None:
+                raise ValueError(f"SCL 安全加载未返回解析结果：{args.input}")
             report = render_markdown(result)
-            summary = f"{result.block.name or 'unknown block'}, {len(result.variables)} variables"
+            summary = (
+                f"{result.block.name or 'unknown block'}, {len(result.variables)} variables, "
+                f"sha256={loaded.sha256[:12]}…, {loaded.hash_status}"
+            )
         elif mode == "project":
-            project = ProjectAnalyzer().scan(args.input)
+            project = SecureProjectAnalyzer().scan(args.input)
             review_project = project
             report = render_project_markdown(project)
             exported = ()
