@@ -33,6 +33,13 @@ class IntegrityManifest:
 
 
 @dataclass(frozen=True)
+class IntegrityExpectation:
+    expected_sha256: str
+    reference_path: Path
+    reference_kind: str
+
+
+@dataclass(frozen=True)
 class IntegrityVerification:
     path: Path
     expected_sha256: str
@@ -76,6 +83,82 @@ class IntegrityChecker:
         except OSError as exc:
             raise IntegrityCheckError(f"无法读取文件 {path}：{exc}") from exc
         return digest.hexdigest()
+
+    def find_expectation(
+        self,
+        filename: str | Path,
+        *,
+        manifest_name: str = DEFAULT_MANIFEST_NAME,
+    ) -> IntegrityExpectation | None:
+        """Find a trusted-by-location SHA-256 reference without hashing the target.
+
+        Per-file sidecars take precedence over the directory manifest. Any referenced
+        path must resolve to the requested file; malformed or escaping paths are
+        rejected rather than silently ignored.
+        """
+
+        path = Path(filename)
+        target = path.resolve()
+        sidecar = Path(str(path) + ".sha256")
+        if sidecar.is_file():
+            try:
+                lines = [
+                    line.strip()
+                    for line in sidecar.read_text(encoding="utf-8-sig").splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")
+                ]
+            except (OSError, UnicodeError) as exc:
+                raise IntegrityCheckError(f"无法读取 SHA-256 sidecar：{exc}") from exc
+            if len(lines) != 1:
+                raise IntegrityCheckError(f"SHA-256 sidecar 必须包含且仅包含一条有效记录：{sidecar}")
+            match = _SHA256_LINE.match(lines[0])
+            if not match:
+                raise IntegrityCheckError(f"SHA-256 sidecar 格式无效：{sidecar}")
+            referenced = (sidecar.parent / match.group("path").strip()).resolve()
+            if referenced != target:
+                raise IntegrityCheckError(
+                    f"SHA-256 sidecar 指向的文件与目标不一致：{sidecar}"
+                )
+            return IntegrityExpectation(
+                expected_sha256=match.group("digest").lower(),
+                reference_path=sidecar,
+                reference_kind="sidecar",
+            )
+
+        manifest = path.parent / manifest_name
+        if not manifest.is_file():
+            return None
+
+        base = manifest.parent.resolve()
+        try:
+            lines = manifest.read_text(encoding="utf-8-sig").splitlines()
+        except (OSError, UnicodeError) as exc:
+            raise IntegrityCheckError(f"无法读取 SHA-256 清单：{exc}") from exc
+
+        found: IntegrityExpectation | None = None
+        for line_number, raw in enumerate(lines, start=1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            match = _SHA256_LINE.match(line)
+            if not match:
+                raise IntegrityCheckError(f"SHA-256 清单第 {line_number} 行格式无效")
+            candidate = (base / match.group("path").strip()).resolve()
+            if not candidate.is_relative_to(base):
+                raise IntegrityCheckError(
+                    f"SHA-256 清单第 {line_number} 行路径越界：{match.group('path').strip()}"
+                )
+            if candidate != target:
+                continue
+            expectation = IntegrityExpectation(
+                expected_sha256=match.group("digest").lower(),
+                reference_path=manifest,
+                reference_kind="manifest",
+            )
+            if found is not None and found.expected_sha256 != expectation.expected_sha256:
+                raise IntegrityCheckError(f"SHA-256 清单中目标文件存在冲突记录：{path.name}")
+            found = expectation
+        return found
 
     def generate(
         self,
@@ -207,11 +290,10 @@ class IntegrityChecker:
         sidecar = Path(str(path) + ".sha256")
         if not sidecar.is_file():
             raise IntegrityCheckError(f"SHA-256 sidecar 不存在：{sidecar}")
-        line = sidecar.read_text(encoding="utf-8-sig").strip()
-        match = _SHA256_LINE.match(line)
-        if not match:
-            raise IntegrityCheckError(f"SHA-256 sidecar 格式无效：{sidecar}")
-        expected = match.group("digest").lower()
+        expectation = self.find_expectation(path)
+        if expectation is None or expectation.reference_kind != "sidecar":
+            raise IntegrityCheckError(f"无法从 sidecar 取得 SHA-256：{sidecar}")
+        expected = expectation.expected_sha256
         if not path.is_file():
             return IntegrityVerification(path, expected, None, "missing")
         actual = self.sha256_file(path)
