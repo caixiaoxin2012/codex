@@ -2,6 +2,22 @@
 
 本项目从 V0.9.6 起，对每一次大的功能改动使用独立版本号和带版本号的 Git commit message 区分。
 
+## V0.11.3 - Unified Secure Loader
+
+- 新增 `secure_loader.py`，统一负责 `.scl/.xml` 文件的安全读取与解析入口。
+- 固定处理顺序为：文件类型/大小检查 → SHA-256 计算与参考值校验 → 内容解析；哈希不一致时不会进入 SCL/XML 解析器。
+- SHA-256 参考值优先读取 `<filename>.sha256` sidecar，其次读取同目录 `SHA256SUMS.txt`；也支持调用方显式传入 expected SHA-256。
+- 无参考哈希时默认进入兼容模式：仍计算并记录 SHA-256，状态标记为 `computed_only`；`require_hash_reference=True` strict 模式可要求“无哈希不解析”。
+- `SecureLoadResult` 保留来源、文件类型、大小、SHA-256、哈希状态、参考文件、哈希耗时、解析耗时、总耗时及安全警告。
+- 新增滚动审计日志 `~/.scl_ai_analyzer/logs/secure_loader.log`；成功与失败均记录文件来源、路径、SHA-256（若已计算）、耗时、异常类型与异常信息，不记录完整 PLC 源码。
+- 扩展 `integrity_checker.py`，新增 SHA-256 sidecar/manifest 参考值查找，并拒绝 sidecar 指向错误目标、manifest 路径越界或冲突记录。
+- 新增 `secure_project.py`，普通 SCL 项目扫描统一经过 `SecureLoader`。
+- `secure_tia_adapter.py` 升级：TIA 导出目录中的 `.scl/.xml` 统一经过 `SecureLoader`；`.awl/.udt/.db` 暂保留原兼容路径。
+- CLI 单 SCL、CLI 项目模式以及桌面项目分析统一接入安全加载链路。
+- 新增 `gui_v0113.py`，桌面版显示统一 SCL/XML 安全加载阶段。
+- 新增 `tests/test_secure_loader.py`，覆盖 sidecar、manifest、篡改拒绝、无参考兼容模式、strict 模式、XML 安全解析、大小限制与审计日志。
+- Windows EXE 入口、版本资源、构建脚本和 GitHub Actions Artifact 同步升级为 V0.11.3。
+
 ## V0.11.2 - Export Integrity / SHA-256
 
 - 新增 `integrity_checker.py`，为导出的 `.scl/.xml` 文件生成 SHA-256。
