@@ -117,6 +117,8 @@ class SecureLoader:
         digest: str | None = None
         hash_status = "not_checked"
         hash_reference: Path | None = None
+        hash_started: float | None = None
+        parse_started: float | None = None
         hash_seconds = 0.0
         parse_seconds = 0.0
 
@@ -125,7 +127,7 @@ class SecureLoader:
 
             hash_started = time.monotonic()
             digest = self.integrity_checker.sha256_file(path)
-            expectation = None
+            hash_seconds = time.monotonic() - hash_started
             if expected_sha256 is not None:
                 expected = expected_sha256.strip().lower()
                 if not _SHA256.fullmatch(expected):
@@ -161,7 +163,6 @@ class SecureLoader:
                     "未找到 .sha256 或 SHA256SUMS.txt 参考值；已计算 SHA-256，"
                     "但只能记录当前内容，不能证明与既有导出版本一致。"
                 )
-            hash_seconds = time.monotonic() - hash_started
 
             parse_started = time.monotonic()
             text: str | None = None
@@ -216,7 +217,12 @@ class SecureLoader:
             )
             return result
         except Exception as exc:
-            elapsed = time.monotonic() - started
+            now = time.monotonic()
+            if hash_started is not None and hash_seconds == 0.0:
+                hash_seconds = now - hash_started
+            if parse_started is not None and parse_seconds == 0.0:
+                parse_seconds = now - parse_started
+            elapsed = now - started
             self.logger.error(
                 "secure_load_failed source=%s path=%s sha256=%s hash_status=%s "
                 "hash_seconds=%.6f parse_seconds=%.6f total_seconds=%.6f "
